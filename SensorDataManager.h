@@ -1,0 +1,25 @@
+/*
+ *	SensorDataManager.h
+ *
+ *  Created on: 04.11.2015
+ *      Author: aott
+ *
+ *
+ *	This Manager should provide a Method which reads the values from all Sensors and write it to an array
+ *
+ *	int readSensorData(double*)
+ *
+ *	@return int 	-An Errorcode specified in errorcodes.h
+ *
+ *	@param double* 	-A Pointer to the Array where all the sensordata should be stored.
+ *
+ *
+ *
+ */
+
+
+#include "b_errorcodes.h"
+
+//Asumption: rawSensordata[9]
+
+int readSensorData(double* rawSensorData);
