@@ -3,7 +3,6 @@
 	<name>SimpleFlightController</name>
 	<comment></comment>
 	<projects>
-		<project>SimpleFlightController_bsp</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
