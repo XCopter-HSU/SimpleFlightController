@@ -9,7 +9,7 @@
 #define B_MOTORDRIVER_H_
 
 //-----------------------Includes----------------------------------------------
-#include "../stdint.h"
+#include <stdint.h>
 
 //-----------------------Attributes--------------------------------------------
 enum Motor {

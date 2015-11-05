@@ -8,7 +8,7 @@
 //-----------------------Includes----------------------------------------------
 #include "Driver_Compa.h"
 #include "Driver_I2C.h"
-#include "../b_errorcodes.h"
+#include "../Errorcodes.h"
 #include <unistd.h>
 
 //-----------------------Attributes--------------------------------------------

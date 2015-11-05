@@ -7,7 +7,7 @@
 #define B_I2CDRIVER_H_
 
 //-----------------------Includes----------------------------------------------
-#include "../stdint.h" // Include stdint.h for the use of Integers with a defined size
+#include <stdint.h>
 
 //-----------------------Driver States-----------------------------------------
 /**

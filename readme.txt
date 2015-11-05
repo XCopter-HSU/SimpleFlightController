@@ -24,3 +24,5 @@ This example requires only a JTAG connection with a Nios Development board. If
 the host communication settings are changed from JTAG UART (default) to use a
 conventional UART, a serial cable between board DB-9 connector  and the host is
 required.
+
+akk

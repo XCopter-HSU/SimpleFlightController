@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "Driver_I2C.h"
 #include "Driver_Accl.h"
-#include "../b_errorcodes.h"
+#include "../Errorcodes.h"
 
 //-----------------------Attributes--------------------------------------------
 enum AccelerometerState Accelerometer_state = ACC_NOTAVAILABLE;

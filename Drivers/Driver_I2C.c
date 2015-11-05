@@ -5,7 +5,7 @@
 
 //-----------------------Includes----------------------------------------------
 #include "Driver_I2C.h"
-#include "../b_errorcodes.h"
+#include "../Errorcodes.h"
 
 //-----------------------Defines-----------------------------------------------
 #define I2CDriver_PRESCLOREG 	(*((volatile uint8_t *) 0x09000040)) // Here you have to put in the Base Address of the Controller

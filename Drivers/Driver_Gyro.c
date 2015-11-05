@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include "Driver_I2C.h"
 #include "Driver_Gyro.h"
-#include "../b_errorcodes.h"
+#include "../Errorcodes.h"
 
 //-----------------------Constants---------------------------------------------
 char DLPF_CFG_0 = 1 << 0;

@@ -14,7 +14,6 @@
 #include "Drivers/Driver_Gyro.h"
 
 
-
 int readSensorData(double* rawSensorData){
 
 

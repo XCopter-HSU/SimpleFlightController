@@ -7,7 +7,7 @@
 #define B_ACCELEROMETERDRIVER_H_
 
 //-----------------------Includes----------------------------------------------
-#include "../stdint.h" // Include stdint.h for the use of Integers with a defined size
+#include <stdint.h>
 
 //-----------------------Defines-----------------------------------------------
 #define ADXL345_DEVICE_ADDR 	0x53

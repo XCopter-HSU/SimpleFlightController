@@ -7,7 +7,7 @@
 #define B_GYROSCOPEDRIVER_H_
 
 //-----------------------Includes----------------------------------------------
-#include "../stdint.h" // Include stdint.h for the use of Integers with a defined size
+#include <stdint.h> // Include stdint.h for the use of Integers with a defined size
 //-----------------------Defines-----------------------------------------------
 #define ITG3200_ADDR_AD0_HIGH  0x69   //AD0=1 0x69 I2C address when AD0 is connected to HIGH (VCC) - default for sparkfun breakout
 #define ITG3200_ADDR_AD0_LOW   0x68   //AD0=0 0x68 I2C address when AD0 is connected to LOW (GND)

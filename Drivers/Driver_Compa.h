@@ -9,7 +9,7 @@
 #define B_COMPASSDRIVER_H_
 
 //-----------------------Includes----------------------------------------------
-#include "../stdint.h"
+#include <stdint.h>
 
 //-----------------------Defines-----------------------------------------------
 #define HMC5883L_DEVICE_ADDR 				0x1E 	// Base address of the device

@@ -5,7 +5,7 @@
 //-----------------------Includes----------------------------------------------
 #include "Driver_PWM.h"
 #include <system.h>
-#include "../b_errorcodes.h"
+#include "../Errorcodes.h"
 
 //-----------------------Defines-----------------------------------------------
 #define PWMDriver_WIDTHREG1 (*((volatile uint8_t *) 0x9000028))

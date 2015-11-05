@@ -6,7 +6,7 @@
 #define B_PWMDRIVER_H_
 
 //-----------------------Includes----------------------------------------------
-#include "../stdint.h"
+#include <stdint.h>
 
 //-----------------------Enum for PWM selection--------------------------------
 enum PwmController {
