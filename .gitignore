@@ -1,3 +1,5 @@
 obj/
 SimpleFlightController.map
 create-this-app
+.settings/
+SimpleFlightController.objdump
