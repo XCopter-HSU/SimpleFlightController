@@ -9,24 +9,24 @@
  */
 
 #include "SensorDataManager.h"
-#include "Drivers/Driver_Accl.h"
-#include "Drivers/Driver_Compa.h"
-#include "Drivers/Driver_Gyro.h"
+#include "Driver/Driver_Accl.h"
+#include "Driver/Driver_Compa.h"
+#include "Driver/Driver_Gyro.h"
 
-#define ARR_AVG5(arr) ((arr[0]+arr[1]+arr[2]+arr[3]+arr[4])/VAL_NUM)
-#define VAL_NUM 5
-int16_t aX[VAL_NUM] = {0};
-int16_t aY[VAL_NUM] = {0};
-int16_t aZ[VAL_NUM] = {0};
-int16_t cX[VAL_NUM] = {0};
-int16_t cY[VAL_NUM] = {0};
-int16_t cZ[VAL_NUM] = {0};
-int16_t gX[VAL_NUM] = {0};
-int16_t gY[VAL_NUM] = {0};
-int16_t gZ[VAL_NUM] = {0};
+#define VALUE_NUM 20
+
+int16_t aX[VALUE_NUM] = {0};
+int16_t aY[VALUE_NUM] = {0};
+int16_t aZ[VALUE_NUM] = {0};
+int16_t cX[VALUE_NUM] = {0};
+int16_t cY[VALUE_NUM] = {0};
+int16_t cZ[VALUE_NUM] = {0};
+int16_t gX[VALUE_NUM] = {0};
+int16_t gY[VALUE_NUM] = {0};
+int16_t gZ[VALUE_NUM] = {0};
+int16_t* arrs[9] = {aX, aY, aZ, cX, cY, cZ, gX, gY, gZ};
 
 int16_t avgData[9] = {0};
-
 
 int8_t readSensorData(int16_t* rawSensorData){
 
@@ -67,29 +67,34 @@ int8_t readSensorData(int16_t* rawSensorData){
 	return NO_ERR;
 }
 
-
 int8_t avgAllArrays(){
 	INT8U err = OS_NO_ERR;
+
+
 	int16_t avgTempData[9];
 
-	//avgData[0] = (aX[0]+aX[1]+aX[2]+aX[3]+aX[4])/VAL_NUM;
+	int i,j;
+	for (i = 0; i < 9; i++) {
+		int16_t sum = 0;
+		for (j = 0; j < VALUE_NUM; j++) {
+			sum += (arrs[i])[j];
+ 		}
+		avgTempData[i] = sum/VALUE_NUM;
+	/**     // static average array with 5 values
+	#define ARR_AVG5(arr) ((arr[0]+arr[1]+arr[2]+arr[3]+arr[4])/VALUE_NUM)
 	avgTempData[0] = ARR_AVG5(aX);
-	avgTempData[1] = ARR_AVG5(aY);
-	avgTempData[2] = ARR_AVG5(aZ);
-	avgTempData[3] = ARR_AVG5(cX);
-	avgTempData[4] = ARR_AVG5(cY);
-	avgTempData[5] = ARR_AVG5(cZ);
-	avgTempData[6] = ARR_AVG5(gX);
-	avgTempData[7] = ARR_AVG5(gY);
-	avgTempData[8] = ARR_AVG5(gZ);
+	*/
+	}
+
+
 
 	int i;
 
 
 	//get Semaphore for the avg Data
 	OSMutexPend(sendorDataMutex, 0, &err);
-	for(i = 0;i<=8;i++){
-		avgData[i] = avgTempData[0];
+	for(i = 0; i<9 ;i++){
+		avgData[i] = avgTempData[i];
 	}
 	//release Semaphore for the avg Data
 	err = OSMutexPost(sendorDataMutex);
@@ -123,6 +128,8 @@ void SensorDataManagerTask(void* pdata){
 
 	int8_t err = NO_ERR;
 
+
+
 	while(1){
 
 		err = readSensorData(rawData); //get newRawData
@@ -139,7 +146,7 @@ void SensorDataManagerTask(void* pdata){
 
 		cnt++;
 
-		cnt = cnt%VAL_NUM;
+		cnt = cnt%VALUE_NUM;
 
 		err = avgAllArrays();
 

@@ -44,4 +44,11 @@ int8_t getSersorData(int16_t* avgSensorData);
 extern void SensorDataManagerTask(void* pdata);
 
 
+/**
+ * This funktion does all the averaging work on the lokal arrays.
+ * sould it be listet here in .h - file?
+ *
+ * int8_t avgAllArrays();
+ */
+
 #endif /* SENSORDATAMANAGER_H_*/
