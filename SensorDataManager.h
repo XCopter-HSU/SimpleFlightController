@@ -17,9 +17,31 @@
  *
  */
 
+#ifndef SENSORDATAMANAGER_H_
+#define SENSORDATAMANAGER_H_
 
 #include "Errorcodes.h"
+#include "stdint.h" // Include stdint.h for the use of Integers with a defined size
+#include "includes.h"
 
-//Asumption: rawSensordata[9]
+extern OS_EVENT* sendorDataMutex;
 
-int readSensorData(double* rawSensorData);
+
+/**
+ * read the Raw Sensorvalues directly from the sensors vial i2c
+ */
+int8_t readSensorData(int16_t* rawSensorData);
+
+/**
+ * read the averaged data from Task
+ */
+int8_t getSersorData(int16_t* avgSensorData);
+
+
+/**
+ * Call this Mehtode once in the SensorDataManagerTask.
+ */
+extern void SensorDataManagerTask(void* pdata);
+
+
+#endif /* SENSORDATAMANAGER_H_*/

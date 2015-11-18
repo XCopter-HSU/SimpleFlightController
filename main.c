@@ -30,44 +30,86 @@
 #include <stdio.h>
 #include "includes.h"
 
+#include <stdint.h>
+#include "main.h"//contains all semaphores OS_EVENTs for external files // RC required
+#include "RCReceiver.h" // RC required
+#include "logger.h"
+#include "SensorDataManager.h"
+//#include "b_pwmdriver.h" // RC required for testing
+
 /* Definition of Task Stacks */
 #define   TASK_STACKSIZE       2048
 OS_STK SensorDataManagerTask_stk[TASK_STACKSIZE];
 OS_STK MainTask_stk[TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
-#define SDM_TASK_PRIORITY      1
-#define MAIN_TASK_PRIORITY      2
+#define SDM_TASK_PRIORITY      3
+#define MAIN_TASK_PRIORITY     4
+#define SENSOR_DATA_MUTEX_PRIORITY      2
 
-/*
- * SensorDataManager Task
- */
-void SensorDataManagerTask(void* pdata) {
-	while (1) {
-		printf("Hello from task1\n");
-		OSTimeDlyHMSM(0, 0, 3, 0);
-	}
-}
+/* Definition of UART OS_Queu*/
+#define UART_Q_SIZE 16 // RC required
+OS_EVENT* uartQsem; //message que for uart
+void* uartQmessageTable[UART_Q_SIZE]; //uart queue table // RC required
+
+/* Definition of Semaphores*/
+OS_EVENT* rcTasksem; //message que for uart
+OS_EVENT* sendorDataMutex;
+
+/*global variables*/
+//INT8U dummy;
+//INT8U* err = &dummy;
+uint16_t rcValue[8]; //contains rc commands will be updated by the receiver task // RC required
 
 /*
  * Main Task
  */
 void MainTask(void* pdata) {
+//	int frameDone = 0; // RC required
+	printf("Starting RC task...\n");
+
+	int16_t* avgSensorData[9] = {0};
+	int8_t err = NO_ERR;
 	while (1) {
-		printf("Hello from task2\n");
-		OSTimeDlyHMSM(0, 0, 3, 0);
+//		frameDone = updateChannelsRC();
+//		if (frameDone == 1)
+//		{
+//		  OSSemPost(rcTasksem);
+//		}
+		err = getSensorData(avgSensorData);
+		int i;
+		for (i = 0; i < 9; ++i) {
+			if (i % 3 == 0) {
+				printf("\n");
+			}
+			printf("%d\t", (int16_t) avgSensorData[i]);
+		}
+		printf("\n\n");
+
+		OSTimeDlyHMSM(0, 0, 0, 500);
 	}
 }
+
 
 /*
  * Starting point for SimpleFlightController
  */
 int main(void) {
 
+	printf("Starting Program\n");
+	INT8U err = OS_NO_ERR;
+	uartQsem = OSQCreate((void*)&uartQmessageTable, UART_Q_SIZE); //create Message Que for UART
+
+	sendorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
+
+	rcTasksem = OSSemCreate(0);
+
+	initRCreceiver();
 	/*
 	 * create SensorDataManagerTask
+	 * declared in SensorDataManager.h
 	 */
-	OSTaskCreateExt(SensorDataManagerTask,
+	err = OSTaskCreateExt(SensorDataManagerTask,
 	NULL, (void *) &SensorDataManagerTask_stk[TASK_STACKSIZE - 1],
 	SDM_TASK_PRIORITY,
 	SDM_TASK_PRIORITY, SensorDataManagerTask_stk,
@@ -77,7 +119,7 @@ int main(void) {
 	/*
 	 * create MainTask
 	 */
-	OSTaskCreateExt(MainTask,
+	err = OSTaskCreateExt(MainTask,
 	NULL, (void *) &MainTask_stk[TASK_STACKSIZE - 1],
 	MAIN_TASK_PRIORITY,
 	MAIN_TASK_PRIORITY, MainTask_stk,
