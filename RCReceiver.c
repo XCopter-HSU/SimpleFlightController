@@ -14,7 +14,7 @@ typedef unsigned char uchar_t;
 
 int8_t RC_RECEIVER_NEW_DATA_AVAILABLE = 0; //update flag if current Data was updated successfully
 
-uint16_t rcValue[8]; //extern value will be updated by updateChannelsRC, declared in main.h
+uint16_t rcValue[SUMD_MAXCHAN]; //extern value will be updated by updateChannelsRC, declared in main.h
 
 static uint8_t sumdIndex=0;
 static uint8_t sumdSize=0;
@@ -51,13 +51,20 @@ void initRCreceiver()
 }
 
 
-uint16_t* getRCvalues()
+uint8_t getRCvalues(uint16_t* newRCvalues)
 {
-	if (RC_RECEIVER_NEW_DATA_AVAILABLE == 1) {
-		RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
-		return rcValue;
+	INT8U err = OS_NO_ERR;
+	int i;
+
+	OSMutexPend(rcReceiverMutex, 0, &err);//Acquire Mutex for the avg Data
+	for(i = 0;i < SUMD_MAXCHAN;i++){
+		newRCvalues[i] = rcValue[i];
 	}
-	return (void*) 0; //return Null pointer if data is not new
+	RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
+//	newDataAvailable = 0;
+	err = OSMutexPost(rcReceiverMutex);//release Semaphore for the avg Data
+
+	return err;
 }
 
 /*

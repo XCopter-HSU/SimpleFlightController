@@ -47,15 +47,15 @@
 #define RCRECEIVER_H_
 
 #include <stdint.h>
+#include "includes.h"
 
-#define RC_CHANS 8
 #define SUMD_SYNCBYTE 0xA8
 #define SUMD_MAXCHAN 8
 #define SUMD_BUFFSIZE SUMD_MAXCHAN*2 + 5 // 8 * 2 channels + 5 -> 21 bytes for 8 channels
 #define SUMD_CRC_LENGTH 2
 
+extern OS_EVENT* rcReceiverMutex;
 extern int8_t RC_RECEIVER_NEW_DATA_AVAILABLE;
-
 
 /**
  * Function to initiate UART core
@@ -67,7 +67,7 @@ void initRCreceiver();
  *
  * returns pointer to local RCvalue array
  */
-uint16_t* getNewRCvalues();
+uint8_t getRCvalues(uint16_t* newRCvalues);
 
 /**
  * Function to update new rcCommands
