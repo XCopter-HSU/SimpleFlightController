@@ -14,6 +14,8 @@ typedef unsigned char uchar_t;
 
 int8_t RC_RECEIVER_NEW_DATA_AVAILABLE = 0; //update flag if current Data was updated successfully
 
+uint16_t rcValue[8]; //extern value will be updated by updateChannelsRC, declared in main.h
+
 static uint8_t sumdIndex=0;
 static uint8_t sumdSize=0;
 static uint8_t sumd[SUMD_BUFFSIZE]={0};
@@ -48,6 +50,15 @@ void initRCreceiver()
 //	registerUARTinterrupt(); // setup UART interrupt
 }
 
+
+uint16_t* getRCvalues()
+{
+	if (RC_RECEIVER_NEW_DATA_AVAILABLE == 1) {
+		RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
+		return rcValue;
+	}
+	return (void*) 0; //return Null pointer if data is not new
+}
 
 /*
  * checks crc 16 of received raw frame data
@@ -98,7 +109,6 @@ int updateChannelsRC()
 
 	sumdIndex++;
 
-	RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
 
 	if (sumdIndex == sumdSize * 2 + 5) { //SUMD frame is now completely done, the actural receiver Channel data has to be evaluated now
 		if(crcRawFrameData() != 1)

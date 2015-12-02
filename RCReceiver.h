@@ -48,21 +48,26 @@
 
 #include <stdint.h>
 
-extern uint16_t rcValue[8]; //extern value will be updated by updateChannelsRC, declared in main.h
-
 #define RC_CHANS 8
 #define SUMD_SYNCBYTE 0xA8
 #define SUMD_MAXCHAN 8
 #define SUMD_BUFFSIZE SUMD_MAXCHAN*2 + 5 // 8 * 2 channels + 5 -> 21 bytes for 8 channels
 #define SUMD_CRC_LENGTH 2
 
-extern int8_t RC_RECEIVER;
+extern int8_t RC_RECEIVER_NEW_DATA_AVAILABLE;
 
 
 /**
  * Function to initiate UART core
  */
 void initRCreceiver();
+
+/**
+ * Function to get uptodate RC command values
+ *
+ * returns pointer to local RCvalue array
+ */
+uint16_t* getNewRCvalues();
 
 /**
  * Function to update new rcCommands
