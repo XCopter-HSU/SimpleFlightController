@@ -91,7 +91,6 @@ int8_t getSensorData(int16_t* avgSensorData){
 		avgSensorData[i] = avgData[i];
 	}
 	SDM_NEW_DATA_AVAILABLE = 0;
-//	newDataAvailable = 0;
 	err = OSMutexPost(sensorDataMutex);//release Semaphore for the avg Data
 
 	return err;
@@ -128,8 +127,6 @@ void SensorDataManagerTask(void* pdata){
 			err = avgAllArrays();
 
 			SDM_NEW_DATA_AVAILABLE = 1; //new data is available
-
-//			newDataAvailable = 1;
 		}
 
 		cnt = cnt % VALUE_NUM; //cnt goes from 0 to VALUE_NUM and then starts with 0 again

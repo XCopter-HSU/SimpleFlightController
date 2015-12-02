@@ -54,6 +54,14 @@
 #define SUMD_BUFFSIZE SUMD_MAXCHAN*2 + 5 // 8 * 2 channels + 5 -> 21 bytes for 8 channels
 #define SUMD_CRC_LENGTH 2
 
+
+//TODO verify correctness of rcValue indices
+#define RC_THROTTLE 2
+#define RC_YAW		0
+#define RC_ROLL		1
+#define RC_PITCH	3
+
+
 extern OS_EVENT* rcReceiverMutex;
 extern int8_t RC_RECEIVER_NEW_DATA_AVAILABLE;
 

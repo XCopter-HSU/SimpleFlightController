@@ -1,11 +1,24 @@
+#ifndef PID_ROLL_H_
+#define PID_ROLL_H_
+#include <math.h>
+
 /*
- * PID_Yaw.h
- *
- *  Created on: 28.10.2015
- *      Author: aott
+ * PID Factors
  */
+const float RollKp = 0;
+const float RollKi = 0;
+const float RollKd = 0;
+	
+/*
+ * PID maximum and minimum output
+ */
+ const float RollMaxOut = 0;
+ const float RollMinOut = 0;
+ 
+//minimum error for integration
+const float RollEpsilon = 0.05;
 
 
-akkakndsnasdnlkadsnlk
-asdnanskdakndsasd
+float PIDRollCalculation(float setpoint, float actualPosition);
 
+#endif
