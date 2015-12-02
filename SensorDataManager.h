@@ -24,8 +24,14 @@
 #include "stdint.h" // Include stdint.h for the use of Integers with a defined size
 #include "includes.h"
 
-extern OS_EVENT* sendorDataMutex;
+extern OS_EVENT* sensorDataMutex;
 
+/**
+ * 1 if new Sensordata is available
+ * 0 if no new sensordata is available
+ */
+
+extern int8_t SDM_NEW_DATA_AVAILABLE;
 
 /**
  * read the Raw Sensorvalues directly from the sensors vial i2c
@@ -36,6 +42,8 @@ int8_t readSensorData(int16_t* rawSensorData);
  * read the averaged data from Task
  */
 int8_t getSersorData(int16_t* avgSensorData);
+
+int8_t initSensors();
 
 
 /**

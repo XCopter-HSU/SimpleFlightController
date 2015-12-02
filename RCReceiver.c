@@ -12,6 +12,8 @@
 
 typedef unsigned char uchar_t;
 
+int8_t RC_RECEIVER_NEW_DATA_AVAILABLE = 0; //update flag if current Data was updated successfully
+
 static uint8_t sumdIndex=0;
 static uint8_t sumdSize=0;
 static uint8_t sumd[SUMD_BUFFSIZE]={0};
@@ -96,6 +98,7 @@ int updateChannelsRC()
 
 	sumdIndex++;
 
+	RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
 
 	if (sumdIndex == sumdSize * 2 + 5) { //SUMD frame is now completely done, the actural receiver Channel data has to be evaluated now
 		if(crcRawFrameData() != 1)
@@ -112,9 +115,10 @@ int updateChannelsRC()
 		uint8_t b = 0;
 		for (b = 0; b < sumdSize; b++)// appending high byte and the low byte to one value
 		{
-			rcValue[b] = (tmp[0] << 8) | tmp[1]; //removed >> 3
+			rcValue[b] = (tmp[0] << 8) | tmp[1]; //removed >> 3 from MultiWii example
 			tmp += 2; //increasing pointer to next channel high byte
 		}
+		RC_RECEIVER_NEW_DATA_AVAILABLE = 1;
 		return 1; //reading RX is done
 	}
 	return 0;

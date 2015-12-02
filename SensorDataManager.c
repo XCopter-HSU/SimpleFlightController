@@ -9,60 +9,43 @@
  */
 
 #include "SensorDataManager.h"
-#include "Driver/Driver_Accl.h"
-#include "Driver/Driver_Compa.h"
-#include "Driver/Driver_Gyro.h"
+#include "Drivers/Driver_Accl.h"
+#include "Drivers/Driver_Compa.h"
+#include "Drivers/Driver_Gyro.h"
 
 #define VALUE_NUM 20
 
-int16_t aX[VALUE_NUM] = {0};
-int16_t aY[VALUE_NUM] = {0};
-int16_t aZ[VALUE_NUM] = {0};
-int16_t cX[VALUE_NUM] = {0};
-int16_t cY[VALUE_NUM] = {0};
-int16_t cZ[VALUE_NUM] = {0};
-int16_t gX[VALUE_NUM] = {0};
-int16_t gY[VALUE_NUM] = {0};
-int16_t gZ[VALUE_NUM] = {0};
-int16_t* arrs[9] = {aX, aY, aZ, cX, cY, cZ, gX, gY, gZ};
+int16_t acclX[VALUE_NUM] = {0};
+int16_t acclY[VALUE_NUM] = {0};
+int16_t acclZ[VALUE_NUM] = {0};
 
+int16_t compX[VALUE_NUM] = {0};
+int16_t compY[VALUE_NUM] = {0};
+int16_t compZ[VALUE_NUM] = {0};
+
+int16_t gyroX[VALUE_NUM] = {0};
+int16_t gyroY[VALUE_NUM] = {0};
+int16_t gyroZ[VALUE_NUM] = {0};
+
+int16_t* arrs[9] = {acclX, acclY, acclZ, gyroX, gyroY, gyroZ, compX, compY, compZ};
+
+//init all elements to 0
 int16_t avgData[9] = {0};
 
-int8_t readSensorData(int16_t* rawSensorData){
+int8_t SDM_NEW_DATA_AVAILABLE = 0;
 
-	int16_t acclX;
-	getAccX(&acclX);
+//int8_t newDataAvailable = 0;
 
-	int16_t acclY;
-	getAccX(&acclY);
+int8_t readSensorData(int16_t* rawData){
 
-	int16_t acclZ;
-	getAccX(&acclZ);
+	getAccX(&(rawData[0]));
+	getAccY(&(rawData[1]));
+	getAccZ(&(rawData[2]));
 
+	int16_t temp; //drop it
+	getGyroAll(&temp, &(rawData[3]), &(rawData[4]), &(rawData[5]));
 
-	int16_t compX;
-	int16_t compY;
-	int16_t compZ;
-	Compass_getRawValues(&compX, &compY, &compZ);
-
-
-	int16_t gyroX;
-	int16_t gyroY;
-	int16_t gyroZ;
-	int16_t temp;
-
-	getGyroAll(&temp, &gyroX, &gyroY, &gyroZ);
-
-
-	rawSensorData[0] = acclX;
-	rawSensorData[1] = acclY;
-	rawSensorData[2] = acclZ;
-	rawSensorData[3] = compX;
-	rawSensorData[4] = compY;
-	rawSensorData[5] = compZ;
-	rawSensorData[6] = gyroX;
-	rawSensorData[7] = gyroY;
-	rawSensorData[8] = gyroZ;
+	Compass_getRawValues(&(rawData[6]), &(rawData[7]), &(rawData[8]));
 
 	return NO_ERR;
 }
@@ -86,20 +69,15 @@ int8_t avgAllArrays(){
 	*/
 	}
 
-
-
-	int i;
-
-
 	//get Semaphore for the avg Data
-	OSMutexPend(sendorDataMutex, 0, &err);
+	OSMutexPend(sensorDataMutex, 0, &err);
 	for(i = 0; i<9 ;i++){
 		avgData[i] = avgTempData[i];
 	}
 	//release Semaphore for the avg Data
-	err = OSMutexPost(sendorDataMutex);
+	err = OSMutexPost(sensorDataMutex);
 
-	return NO_ERR;
+	return err;
 }
 
 
@@ -107,16 +85,16 @@ int8_t getSensorData(int16_t* avgSensorData){
 
 	INT8U err = OS_NO_ERR;
 	int i;
-	//get Semaphore for the avg Data
-	/*Acquire Mutex*/
-	OSMutexPend(sendorDataMutex, 0, &err);
-	for(i = 0;i<=8;i++){
+
+	OSMutexPend(sensorDataMutex, 0, &err);//Acquire Mutex for the avg Data
+	for(i = 0;i <9 ;i++){
 		avgSensorData[i] = avgData[i];
 	}
-	//release Semaphore for the avg Data
-	err = OSMutexPost(sendorDataMutex);
+	SDM_NEW_DATA_AVAILABLE = 0;
+//	newDataAvailable = 0;
+	err = OSMutexPost(sensorDataMutex);//release Semaphore for the avg Data
 
-	return NO_ERR;
+	return err;
 }
 
 
@@ -134,22 +112,27 @@ void SensorDataManagerTask(void* pdata){
 
 		err = readSensorData(rawData); //get newRawData
 
-		aX[cnt] = rawData[0];	//fill arrays with new raw data
-		aY[cnt] = rawData[1];
-		aZ[cnt] = rawData[2];
-		cX[cnt] = rawData[3];
-		cY[cnt] = rawData[4];
-		cZ[cnt] = rawData[5];
-		gX[cnt] = rawData[6];
-		gY[cnt] = rawData[7];
-		gZ[cnt] = rawData[8];
+		acclX[cnt] = rawData[0];	//fill arrays with new raw data
+		acclY[cnt] = rawData[1];
+		acclZ[cnt] = rawData[2];
+		gyroX[cnt] = rawData[3];
+		gyroY[cnt] = rawData[4];
+		gyroZ[cnt] = rawData[5];
+		compX[cnt] = rawData[6];
+		compY[cnt] = rawData[7];
+		compZ[cnt] = rawData[8];
 
 		cnt++;
 
-		cnt = cnt%VALUE_NUM;
+		if(cnt>=20){
+			err = avgAllArrays();
 
-		err = avgAllArrays();
+			SDM_NEW_DATA_AVAILABLE = 1; //new data is available
 
+//			newDataAvailable = 1;
+		}
+
+		cnt = cnt % VALUE_NUM; //cnt goes from 0 to VALUE_NUM and then starts with 0 again
 
 		OSTimeDlyHMSM(0, 0, 0, 10); //uncomment if sensordata reading is to fast for the i2c interface -> set delay to appropriate value
 	}

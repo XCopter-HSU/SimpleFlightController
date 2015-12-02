@@ -39,57 +39,207 @@
 
 /* Definition of Task Stacks */
 #define   TASK_STACKSIZE       2048
+OS_STK RCReceiverTask_stk[TASK_STACKSIZE];
 OS_STK SensorDataManagerTask_stk[TASK_STACKSIZE];
 OS_STK MainTask_stk[TASK_STACKSIZE];
+OS_STK LoggerTask_stk[TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
+#define RC_TASK_PRIORITY 5
 #define SDM_TASK_PRIORITY      3
 #define MAIN_TASK_PRIORITY     4
+#define LOGGER_TASK_PRIORITY     6
 #define SENSOR_DATA_MUTEX_PRIORITY      2
 
-/* Definition of UART OS_Queu*/
-#define UART_Q_SIZE 16 // RC required
+/* Definition of UART OS_Que*/
+#define UART_Q_SIZE 128 // RC required
 OS_EVENT* uartQsem; //message que for uart
 void* uartQmessageTable[UART_Q_SIZE]; //uart queue table // RC required
 
+
+/* Definition of LOGGING OS_Que*/
+#define LOGGER_Q_SIZE 16 // RC required
+OS_EVENT* loggerQsem; //message que for uart
+void* loggerQmessageTable[LOGGER_Q_SIZE]; //uart queue table // RC required
+
+
 /* Definition of Semaphores*/
-OS_EVENT* rcTasksem; //message que for uart
-OS_EVENT* sendorDataMutex;
+OS_EVENT* mainTaskSem;
+OS_EVENT* rcTaskSem;
+OS_EVENT* sensorDataManageTaskrSem;
+
+OS_EVENT* sensorDataMutex; //global mutex for SensorDataManager
 
 /*global variables*/
-//INT8U dummy;
-//INT8U* err = &dummy;
+
+static alt_alarm periodicMainTaskAlarm;
+static alt_alarm periodicRCReceiverTaskAlarm;
+static alt_alarm periodicSensorDataManagerTasktimerAlarm;
+
 uint16_t rcValue[8]; //contains rc commands will be updated by the receiver task // RC required
+
+
+/* Reading UART and parse a SUMD frame then opens a semaphore for other task */
+void RCReceiverTask(void* pdata)
+{
+	int frameDone = 0; // RC required
+	printf("Starting RC task...\n");
+	INT8U err = OS_NO_ERR;
+	while (1)
+	{
+		//printf for timer testing
+		OSSemPend(rcTaskSem, 0, &err);
+		printf("RC Task running\n");
+//		frameDone = updateChannelsRC(); // RC required
+//		if (frameDone == 1) // RC required
+//		{
+//		  OSSemPost(mainTaskSem);
+//		}
+	}
+}
+
+/*
+ * Task which is sending logging Data
+ */
+void LoggerTask(void* pdata)
+{
+	printf("Starting Logger task...\n");
+	INT8U err = OS_NO_ERR;
+	//int16_t rxLoggerData[9] = {0};
+	while (1)
+	{
+		//reading latest byte out of LOGGER OS Message Que. 2nd argument is OSQPend() is timeout value
+		//OSQPend() should block Task if no new data is in Queue
+		int16_t rxLoggerData = (int16_t) OSQPend(loggerQsem, 0, &err); //returns 0
+		if (err != OS_NO_ERR)
+		{
+			printf("Logging ERROR Code: %d\n", err);
+		}
+
+		//TODO send rxLoggerData to MCAPI
+		if(rxLoggerData != NULL){ //data is not new
+			printf("LoggerTask running: data = %d\n", (int16_t) rxLoggerData);
+		}
+
+	}
+}
+
+
+/**
+ * function to post data to Logger Queue
+ */
+void postDataToQ(int16_t* data)
+{
+	int i;
+	for (i= 0; i < 9; i++) {
+		OSQPost(loggerQsem, (void*) data[i]); //write new Logging Data in MSG Que
+	}
+}
+
 
 /*
  * Main Task
  */
 void MainTask(void* pdata) {
 //	int frameDone = 0; // RC required
-	printf("Starting RC task...\n");
+	printf("Starting Main task...\n");
 
-	int16_t* avgSensorData[9] = {0};
-	int8_t err = NO_ERR;
+	int16_t avgSensorData[9] = {0};
+	INT8U err = OS_ERR_NONE;
 	while (1) {
+		OSSemPend(mainTaskSem, 0, &err);
+		printf("Main Task running\n");
+		//RC receiver Test
 //		frameDone = updateChannelsRC();
 //		if (frameDone == 1)
 //		{
 //		  OSSemPost(rcTasksem);
 //		}
+
+		//Sensor Test
 		err = getSensorData(avgSensorData);
+
 		int i;
 		for (i = 0; i < 9; ++i) {
-			if (i % 3 == 0) {
-				printf("\n");
-			}
+			if (i % 3 == 0) printf("\t\t");
+
+			err = OSQPost(loggerQsem, (void*) avgSensorData[i]); //write new Logging Data in MSG Que
 			printf("%d\t", (int16_t) avgSensorData[i]);
+			if (err != OS_ERR_NONE) {
+				printf("ERROR occured Code: %d\n", err);
+			}
 		}
 		printf("\n\n");
 
-		OSTimeDlyHMSM(0, 0, 0, 500);
+		//periodic timer Test
+
+
+//		postDataToQ(avgSensorData);
 	}
 }
 
+
+/*
+ * RCReceiver periodic timer Callback
+ */
+alt_u32 mainTasktimerCallback(void* context){
+	OSSemPost(mainTaskSem);
+	return alt_ticks_per_second() * 200 / 1000; //must return the periode ticks
+}
+
+
+/*
+ * SensorDataManager periodic timer Callback
+ */
+alt_u32 RCReceiverTaskTasktimerCallback(void* context){
+	OSSemPost(rcTaskSem);
+	return alt_ticks_per_second() * 500 / 1000; //must return the periode ticks
+}
+
+
+/*
+ * mainTask periodic timer Callback
+ */
+alt_u32 SensorDataManagerTasktimerCallback(void* context){
+	OSSemPost(sensorDataManageTaskrSem);
+	return alt_ticks_per_second() * 100 / 1000; //must return the periode ticks
+}
+
+/**
+ * init method to init Driver related Stuff
+ */
+void DriverInit()
+{
+	uartQsem = OSQCreate((void*)&uartQmessageTable, UART_Q_SIZE); //create Message Queue for UART driver
+	initRCreceiver();
+	initSensors();
+}
+
+/**
+ * method to initialize OS related stuff e.g. setup of periodic timers
+ *
+ * returs an errorcode if occured
+ */
+int OSinit()
+{
+	INT8U err = OS_NO_ERR; //error variable for init errors
+
+	loggerQsem = OSQCreate((void*)&loggerQmessageTable, LOGGER_Q_SIZE); //create Message Queue for LOGGER
+
+	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
+
+	mainTaskSem = OSSemCreate(0);
+	sensorDataManageTaskrSem = OSSemCreate(0);
+	rcTaskSem = OSSemCreate(0);
+
+//	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second()*5, mainTasktimerCallback, NULL); // periodic timer for MainTask
+//
+//	alt_alarm_start(&periodicRCReceiverTaskAlarm, alt_ticks_per_second()*5, RCReceiverTaskTasktimerCallback, NULL); // periodic timer for MainTask
+//
+//	alt_alarm_start(&periodicSensorDataManagerTasktimerAlarm, alt_ticks_per_second()*5, SensorDataManagerTasktimerCallback, NULL); // periodic timer for MainTask
+
+	return err;
+}
 
 /*
  * Starting point for SimpleFlightController
@@ -97,14 +247,41 @@ void MainTask(void* pdata) {
 int main(void) {
 
 	printf("Starting Program\n");
-	INT8U err = OS_NO_ERR;
-	uartQsem = OSQCreate((void*)&uartQmessageTable, UART_Q_SIZE); //create Message Que for UART
+	printf("initialize components...");
+	DriverInit();
+//	OSInit();
 
-	sendorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
+	INT8U err = OS_NO_ERR; //error variable for init errors
 
-	rcTasksem = OSSemCreate(0);
+	loggerQsem = OSQCreate((void*)&loggerQmessageTable, LOGGER_Q_SIZE); //create Message Queue for LOGGER
 
-	initRCreceiver();
+	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
+
+	mainTaskSem = OSSemCreate(0);
+	sensorDataManageTaskrSem = OSSemCreate(0);
+	rcTaskSem = OSSemCreate(0);
+
+	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second()*5, mainTasktimerCallback, NULL); // periodic timer for MainTask
+
+	alt_alarm_start(&periodicRCReceiverTaskAlarm, alt_ticks_per_second()*5, RCReceiverTaskTasktimerCallback, NULL); // periodic timer for MainTask
+
+	alt_alarm_start(&periodicSensorDataManagerTasktimerAlarm, alt_ticks_per_second()*5, SensorDataManagerTasktimerCallback, NULL); // periodic timer for MainTask
+
+
+	printf("done\n");
+
+//	INT8U err = OS_NO_ERR;
+	/**
+	 * create RCReceiver Task
+	 */
+	OSTaskCreateExt(RCReceiverTask,
+	NULL, (void *)&RCReceiverTask_stk[TASK_STACKSIZE-1],
+	RC_TASK_PRIORITY,
+	RC_TASK_PRIORITY,
+	RCReceiverTask_stk,
+	TASK_STACKSIZE,
+	NULL, 0);
+
 	/*
 	 * create SensorDataManagerTask
 	 * declared in SensorDataManager.h
@@ -117,6 +294,16 @@ int main(void) {
 	NULL, 0);
 
 	/*
+	 * create LoggerTask
+	 */
+	err = OSTaskCreateExt(LoggerTask,
+	NULL, (void *) &LoggerTask_stk[TASK_STACKSIZE - 1],
+	LOGGER_TASK_PRIORITY,
+	LOGGER_TASK_PRIORITY, LoggerTask_stk,
+	TASK_STACKSIZE,
+	NULL, 0);
+
+	/*
 	 * create MainTask
 	 */
 	err = OSTaskCreateExt(MainTask,
@@ -125,38 +312,9 @@ int main(void) {
 	MAIN_TASK_PRIORITY, MainTask_stk,
 	TASK_STACKSIZE,
 	NULL, 0);
+
+
 	OSStart();
 	return 0;
 
 }
-
-/******************************************************************************
- *                                                                             *
- * License Agreement                                                           *
- *                                                                             *
- * Copyright (c) 2004 Altera Corporation, San Jose, California, USA.           *
- * All rights reserved.                                                        *
- *                                                                             *
- * Permission is hereby granted, free of charge, to any person obtaining a     *
- * copy of this software and associated documentation files (the "Software"),  *
- * to deal in the Software without restriction, including without limitation   *
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,    *
- * and/or sell copies of the Software, and to permit persons to whom the       *
- * Software is furnished to do so, subject to the following conditions:        *
- *                                                                             *
- * The above copyright notice and this permission notice shall be included in  *
- * all copies or substantial portions of the Software.                         *
- *                                                                             *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  *
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,    *
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE *
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER      *
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING     *
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER         *
- * DEALINGS IN THE SOFTWARE.                                                   *
- *                                                                             *
- * This agreement shall be governed in all respects by the laws of the State   *
- * of California and by the laws of the United States of America.              *
- * Altera does not recommend, suggest or require that this reference design    *
- * file be used in conjunction or combination with any other product.          *
- ******************************************************************************/

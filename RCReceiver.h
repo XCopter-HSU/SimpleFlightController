@@ -53,9 +53,10 @@ extern uint16_t rcValue[8]; //extern value will be updated by updateChannelsRC, 
 #define RC_CHANS 8
 #define SUMD_SYNCBYTE 0xA8
 #define SUMD_MAXCHAN 8
-#define SUMD_BUFFSIZE SUMD_MAXCHAN*2 + 5 // 6 channels + 5 -> 17 bytes for 6 channels
+#define SUMD_BUFFSIZE SUMD_MAXCHAN*2 + 5 // 8 * 2 channels + 5 -> 21 bytes for 8 channels
 #define SUMD_CRC_LENGTH 2
 
+extern int8_t RC_RECEIVER;
 
 
 /**
