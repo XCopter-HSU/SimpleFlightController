@@ -38,9 +38,9 @@ const float deltaT = 0.002F; // time steps in units of seconds   TODO:!!!!!!!GET
 /*
  * accelerometer constants
  */
-const int ax_offset = -13;      // calibration of accelerometer values:
-const int ay_offset = -3; 		// (accelX*accelX) + (accelY*accelY) * (accelZ*accelZ) should be independant of the orientation of the accelerometer
-const int az_offset = 26;
+const float ax_offset = 13;      // calibration of accelerometer values:
+const float ay_offset = -2; 		// (accelX*accelX) + (accelY*accelY) * (accelZ*accelZ) should be independant of the orientation of the accelerometer
+const float az_offset = 28;
 
 const float ax_scale = 300.0/262.0; //1.145038
 const float ay_scale = 300.0/267.0;
@@ -154,6 +154,8 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
 	angle[0] = atan2(accelY, accelZ); // Roll angle around x axis, [-180, 180] deg, numerically unstable
 	angle[1] = atan2(-accelX,
 			((accelY * sin(angle[0])) + (accelZ * cos(angle[0]))));	// Pitch angle around y axis, restricted to [-90, 90] deg
+
+	//magnetometer zur ausgleichung weil xcopter nicht tangential zur erde steht
 	angle[2] = atan2((magnetZ * sin(angle[0]) - magnetY * cos(angle[0])),
 			(magnetX * cos(angle[1]) + (magnetY * sin(angle[1]) * sin(angle[0]))
 					+ (magnetZ * sin(angle[1]) * cos(angle[0])))); // Yaw angle around z axis. [-180, 180] deg

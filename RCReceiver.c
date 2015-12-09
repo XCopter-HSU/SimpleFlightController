@@ -133,6 +133,7 @@ int updateChannelsRC()
 		for (b = 0; b < sumdSize; b++)// appending high byte and the low byte to one value
 		{
 			rcValue[b] = (tmp[0] << 8) | tmp[1]; //removed >> 3 from MultiWii example
+			rcValue[b] -= 8800; //now the range of the RC value goes from 0 to 6400
 			tmp += 2; //increasing pointer to next channel high byte
 		}
 		RC_RECEIVER_NEW_DATA_AVAILABLE = 1;

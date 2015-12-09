@@ -1,5 +1,5 @@
-#include "PIDPitch.h"
 #include "PIDConfig.h"
+#include "PIDPitch.h"
 
 float PIDPitchCalculation(float setpoint, float actualPosition)
 {

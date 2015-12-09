@@ -39,11 +39,19 @@ extern int8_t SDM_NEW_DATA_AVAILABLE;
 int8_t readSensorData(int16_t* rawSensorData);
 
 /**
- * read the averaged data from Task
+ * returns the averaged data from Task
+ * interface to use the SensorDataManager
  */
 int8_t getSersorData(int16_t* avgSensorData);
 
 int8_t initSensors();
+
+
+/*
+ * Method to compute the offset thats neccessary to calibrate the gyro.
+ * The actual offsets will be saved in a local array, offsets are applied in the SensorDataManagerTask
+ */
+int8_t getGyroCalibrationOffset();
 
 
 /**

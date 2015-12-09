@@ -56,10 +56,10 @@
 
 
 //TODO verify correctness of rcValue indices
-#define RC_THROTTLE 2
-#define RC_YAW		0
-#define RC_ROLL		1
-#define RC_PITCH	3
+#define RC_THROTTLE_INDEX 2
+#define RC_YAW_INDEX 0
+#define RC_ROLL_INDEX 1
+#define RC_PITCH_INDEX 3
 
 
 extern OS_EVENT* rcReceiverMutex;

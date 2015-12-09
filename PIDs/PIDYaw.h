@@ -5,18 +5,18 @@
 /*
  * PID Factors
  */
-const float YawKp = 0;
-const float YawKi = 0;
-const float YawKd = 0;
+#define YawKp 4.5
+#define YawKi 0
+#define YawKd 0
 	
 /*
  * PID maximum and minimum output
  */
- const float YawMaxOut = 0;
- const float YawMinOut = 0;
+#define YawMaxOut 65535
+#define YawMinOut -65535
  
 //minimum error for integration
-const float YawEpsilon = 0.05;
+#define YawEpsilon 0.05f
 
 float PIDYawCalculation(float setpoint, float actualPosition);
 

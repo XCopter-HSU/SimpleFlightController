@@ -5,18 +5,19 @@
 /*
  * PID Factors
  */
-const float RollKp = 0;
-const float RollKi = 0;
-const float RollKd = 0;
-	
+
+#define RollKp 4.5
+#define RollKi 0
+#define RollKd 0
+
 /*
  * PID maximum and minimum output
  */
- const float RollMaxOut = 0;
- const float RollMinOut = 0;
+#define RollMaxOut 65535
+#define RollMinOut -65535
  
 //minimum error for integration
-const float RollEpsilon = 0.05;
+#define RollEpsilon 0.05f
 
 
 float PIDRollCalculation(float setpoint, float actualPosition);

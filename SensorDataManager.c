@@ -34,6 +34,8 @@ int16_t avgData[9] = {0};
 
 int8_t SDM_NEW_DATA_AVAILABLE = 0;
 
+int16_t gyroOffsets[3];
+
 //int8_t newDataAvailable = 0;
 
 int8_t readSensorData(int16_t* rawData){
@@ -114,9 +116,9 @@ void SensorDataManagerTask(void* pdata){
 		acclX[cnt] = rawData[0];	//fill arrays with new raw data
 		acclY[cnt] = rawData[1];
 		acclZ[cnt] = rawData[2];
-		gyroX[cnt] = rawData[3];
-		gyroY[cnt] = rawData[4];
-		gyroZ[cnt] = rawData[5];
+		gyroX[cnt] = rawData[3] - gyroOffsets[0]; //sensor Offsets are only available for gyrodata
+		gyroY[cnt] = rawData[4] - gyroOffsets[1];
+		gyroZ[cnt] = rawData[5] - gyroOffsets[2];
 		compX[cnt] = rawData[6];
 		compY[cnt] = rawData[7];
 		compZ[cnt] = rawData[8];
@@ -142,6 +144,7 @@ int8_t initSensors(){
 	int8_t err1 = Accelerometer_init();
 	int8_t err2 = Compass_init();
 	int8_t err3 = Gyroscope_init();
+	err3 = getGyroCalibrationOffset();
 
 	if (err1) {
 		return err1;
@@ -152,5 +155,64 @@ int8_t initSensors(){
 	if (err3) {
 		return err3;
 	}
-	return NO_ERR; //dont know how to return multiple erroros
+	return NO_ERR; //dont know how to return multiple errors
+}
+
+
+int8_t getGyroCalibrationOffset() {
+
+	int8_t numberOfSamples = 100;
+	int8_t numberOfSamplingLoops = 3;
+	int32_t dataThreshold = 5; // TODO: Determin good value!!!! 5 is only a guess
+
+	int16_t rawGyroData[3];
+	int32_t avgGyroData[3];
+	int16_t gyroTmp = 0;
+
+
+	int16_t j, i;
+
+	int32_t difference[3] = {0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF}; // 0xFFFFFFF = 2147483647 = SingedInterger32.MAX_VALUE
+	int32_t lastValues[3] = {0};
+
+
+
+	while(difference[0] > dataThreshold ||
+		  difference[1] > dataThreshold ||
+		  difference[2] > dataThreshold){
+
+		for(j = 0; j < numberOfSamples; j++) {
+			//read gyro
+			getGyroAll(&gyroTmp, &(rawGyroData[0]), &(rawGyroData[1]), &(rawGyroData[2]));
+
+			//accumulate raw values
+			avgGyroData[0] += rawGyroData[0];
+			avgGyroData[1] += rawGyroData[1];
+			avgGyroData[2] += rawGyroData[2];
+			usleep(50); //measure gyrodata in different times, since the the sensor temperature changes
+		}
+
+
+
+		//divide accumulated raw values by numberOfSamples -> avarage!
+		avgGyroData[0] /= numberOfSamples;
+		avgGyroData[1] /= numberOfSamples;
+		avgGyroData[2] /= numberOfSamples;
+
+		difference[0] = abs(lastValues[0]-avgGyroData[0]);
+		difference[1] = abs(lastValues[1]-avgGyroData[1]);
+		difference[2] = abs(lastValues[2]-avgGyroData[2]);
+
+		lastValues[0] = avgGyroData[0];
+		lastValues[1] = avgGyroData[1];
+		lastValues[2] = avgGyroData[2];
+
+	}
+
+	//saving final offsets
+	gyroOffsets[0] = avgGyroData[0];
+	gyroOffsets[1] = avgGyroData[1];
+	gyroOffsets[2] = avgGyroData[2];
+
+	return NO_ERR;
 }
