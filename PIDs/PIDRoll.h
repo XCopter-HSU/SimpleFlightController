@@ -7,13 +7,13 @@
  */
 
 #define RollKp 4.5
-#define RollKi 0
+#define RollKi 0.1
 #define RollKd 0
 
 /*
  * PID maximum and minimum output
  */
-#define RollMaxOut 65535
+#define RollMaxOut 65536
 #define RollMinOut -65535
  
 //minimum error for integration

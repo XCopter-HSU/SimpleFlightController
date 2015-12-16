@@ -12,7 +12,7 @@
 #include "Errorcodes.h"
 #include <math.h>
 #include <stdint.h>
-
+#include "stdlib.h"
 
 //#define M_PI 3.14159265359
 #define true 1
@@ -32,7 +32,7 @@ const float dtor = M_PI / 180.0F;          // convert degree to rad
 const float rtod = 180.0F / M_PI;          // convert rad to degree
 
 //TODO //0.2 = 200ms because maintask periode is 200ms
-const float deltaT = 0.002F; // time steps in units of seconds   TODO:!!!!!!!GET STEPS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+float deltaT = 0.01; // time steps in units of seconds   TODO:!!!!!!!GET STEPS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //TODO
 
 /*
@@ -190,7 +190,7 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
  *		the time delta between each iteration ?
  *		time delta for integration
  */
-void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omega_m, float deltaT) {
+void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omega_m) {
 
 	//init
 	if (first) {
@@ -308,13 +308,15 @@ void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omeg
 }
 
 
-int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData){
+int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData, uint32_t averagedDataDelatT){
+
+	deltaT = averagedDataDelatT/1000.0; //update deltaT for all functions and calculate from millisecond to second
 
 	//convert raw data into angles etc
 	getRawData(angle, omega, mag, avgSensorData);
 
 	//filter and merge sensor data
-	getFilteredData(angle_p, omega_p, angle, omega, deltaT);
+	getFilteredData(angle_p, omega_p, angle, omega);
 
 
 	//accl_x predicted

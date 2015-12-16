@@ -133,7 +133,18 @@ int updateChannelsRC()
 		for (b = 0; b < sumdSize; b++)// appending high byte and the low byte to one value
 		{
 			rcValue[b] = (tmp[0] << 8) | tmp[1]; //removed >> 3 from MultiWii example
+		//the RCvalues musst be converted to be compatible for
+
 			rcValue[b] -= 8800; //now the range of the RC value goes from 0 to 6400
+
+			//360/6400 = 0,05625 Value to scale rcValue to go from 0 to 360
+			//add offset to make the rcValues go from -180 to 180 max
+
+			//Pitch value should be between 90deg and -90deg
+			//180/6400 = 0,028125 Scale RC to 90deg
+			rcValue[b] *= (b == RC_PITCH_INDEX) ? 0.028125 : 0.05625;
+			rcValue[b] -= (b == RC_PITCH_INDEX) ? 90 : 180;
+
 			tmp += 2; //increasing pointer to next channel high byte
 		}
 		RC_RECEIVER_NEW_DATA_AVAILABLE = 1;

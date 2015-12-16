@@ -42,7 +42,7 @@ int8_t readSensorData(int16_t* rawSensorData);
  * returns the averaged data from Task
  * interface to use the SensorDataManager
  */
-int8_t getSersorData(int16_t* avgSensorData);
+int8_t getSensorData(int16_t* avgSensorData, uint32_t* deltaTime);
 
 int8_t initSensors();
 

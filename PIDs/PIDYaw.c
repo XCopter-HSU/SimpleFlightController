@@ -1,5 +1,6 @@
 #include "PIDYaw.h"
 #include "PIDConfig.h"
+#include "stdlib.h"
 
 float PIDYawCalculation(float setpoint, float actualPosition) {
 

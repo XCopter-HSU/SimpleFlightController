@@ -12,6 +12,8 @@
 #include "Drivers/Driver_Accl.h"
 #include "Drivers/Driver_Compa.h"
 #include "Drivers/Driver_Gyro.h"
+#include <unistd.h>
+#include <stdlib.h>
 
 #define VALUE_NUM 20
 
@@ -35,6 +37,8 @@ int16_t avgData[9] = {0};
 int8_t SDM_NEW_DATA_AVAILABLE = 0;
 
 int16_t gyroOffsets[3];
+
+uint32_t averagedDataDeltaT = 0;
 
 //int8_t newDataAvailable = 0;
 
@@ -83,7 +87,7 @@ int8_t avgAllArrays(){
 }
 
 
-int8_t getSensorData(int16_t* avgSensorData){
+int8_t getSensorData(int16_t* avgSensorData, uint32_t* deltaTime){
 
 	INT8U err = OS_NO_ERR;
 	int i;
@@ -91,7 +95,9 @@ int8_t getSensorData(int16_t* avgSensorData){
 	OSMutexPend(sensorDataMutex, 0, &err);//Acquire Mutex for the avg Data
 	for(i = 0;i <9 ;i++){
 		avgSensorData[i] = avgData[i];
+
 	}
+	*deltaTime = averagedDataDeltaT;
 	SDM_NEW_DATA_AVAILABLE = 0;
 	err = OSMutexPost(sensorDataMutex);//release Semaphore for the avg Data
 
@@ -107,7 +113,9 @@ void SensorDataManagerTask(void* pdata){
 
 	int8_t err = NO_ERR;
 
-
+	//start
+	uint32_t start  = alt_nticks();
+	uint32_t stop = 0;
 
 	while(1){
 
@@ -125,8 +133,14 @@ void SensorDataManagerTask(void* pdata){
 
 		cnt++;
 
+
 		if(cnt>=20){
+
 			err = avgAllArrays();
+
+			stop =  alt_nticks();
+			averagedDataDeltaT = (stop - start)*1000/alt_ticks_per_second(); //calculate the time needed to get all sensordata in milliseconds
+			start = stop; //restart Timer
 
 			SDM_NEW_DATA_AVAILABLE = 1; //new data is available
 		}
@@ -162,15 +176,14 @@ int8_t initSensors(){
 int8_t getGyroCalibrationOffset() {
 
 	int8_t numberOfSamples = 100;
-	int8_t numberOfSamplingLoops = 3;
-	int32_t dataThreshold = 5; // TODO: Determin good value!!!! 5 is only a guess
+	int32_t dataThreshold = 5; // TODO: Determine good value!!!! 5 is only a guess
 
 	int16_t rawGyroData[3];
 	int32_t avgGyroData[3];
 	int16_t gyroTmp = 0;
 
 
-	int16_t j, i;
+	int16_t j;
 
 	int32_t difference[3] = {0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF}; // 0xFFFFFFF = 2147483647 = SingedInterger32.MAX_VALUE
 	int32_t lastValues[3] = {0};
@@ -199,6 +212,7 @@ int8_t getGyroCalibrationOffset() {
 		avgGyroData[1] /= numberOfSamples;
 		avgGyroData[2] /= numberOfSamples;
 
+		//get avg difference from last averaged value and actual avaraged value (compare to treshold in while loop)
 		difference[0] = abs(lastValues[0]-avgGyroData[0]);
 		difference[1] = abs(lastValues[1]-avgGyroData[1]);
 		difference[2] = abs(lastValues[2]-avgGyroData[2]);

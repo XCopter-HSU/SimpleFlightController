@@ -6,8 +6,8 @@
 /*
  * PID Factors
  */
-#define PitchKp 4.5f
-#define PitchKi 0
+#define PitchKp 4.5
+#define PitchKi 0.1
 #define PitchKd 0
 	
 /*

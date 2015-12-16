@@ -38,49 +38,10 @@
 #include "PIDs/PIDPitch.h"
 #include "PIDs/PIDRoll.h"
 #include "PIDs/PIDYaw.h"
+#include "PIDToMotorMapper.h"
 //#include "b_pwmdriver.h" // RC required for testing
 
-//misc Defines
-#define RC_SCALE_TO_PWM 0.0328125f //factor to normalize rcValue to PWM ouput value intervall [0, 210]
 
-/* Definition of Task Stacks */
-#define   TASK_STACKSIZE       2048
-OS_STK RCReceiverTask_stk[TASK_STACKSIZE];
-OS_STK SensorDataManagerTask_stk[TASK_STACKSIZE];
-OS_STK MainTask_stk[TASK_STACKSIZE];
-OS_STK LoggerTask_stk[TASK_STACKSIZE];
-
-/* Definition of Task Priorities */
-#define RC_TASK_PRIORITY 			6
-#define SDM_TASK_PRIORITY      		3
-#define MAIN_TASK_PRIORITY     		4
-#define LOGGER_TASK_PRIORITY     	7
-#define SENSOR_DATA_MUTEX_PRIORITY	2
-#define RC_RECEIVER_MUTEX_PRIORITY  5
-
-/* Definition of UART OS_Que*/
-#define UART_Q_SIZE 128 // RC requiredOS_EVENT* uartQsem; //message que for uart
-void* uartQmessageTable[UART_Q_SIZE]; //uart queue table // RC required
-
-/* Definition of LOGGING OS_Que*/
-#define LOGGER_Q_SIZE 16 // RC requiredOS_EVENT* loggerQsem; //message que for uart
-void* loggerQmessageTable[LOGGER_Q_SIZE]; //uart queue table // RC required
-
-/* Definition of Semaphores*/
-OS_EVENT* mainTaskSem;
-OS_EVENT* rcTaskSem;
-OS_EVENT* sensorDataManageTaskrSem;
-
-OS_EVENT* sensorDataMutex; //global mutex for SensorDataManager
-OS_EVENT* rcReceiverMutex; //global mutex to secure the rcValue Array
-
-/*global variables*/
-
-static alt_alarm periodicMainTaskAlarm;
-static alt_alarm periodicRCReceiverTaskAlarm;
-static alt_alarm periodicSensorDataManagerTasktimerAlarm;
-
-uint16_t rcValue[8]; //contains rc commands will be updated by the receiver task // RC required
 
 /* Reading UART and parse a SUMD frame then opens a semaphore for other task */
 void RCReceiverTask(void* pdata) {
@@ -159,11 +120,25 @@ void MainTask(void* pdata) {
 //	int frameDone = 0; // RC required
 	printf("Starting Main task...\n");
 
-	int16_t avgSensorData[9] = { 0 }; //Oder: ACC- GYR - COMP
-	float filteredSensorData[9] = { 0 }; //Oder: ACC- GYR - COMP
+	int16_t avgSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
+	uint32_t averagedDataDeltaT = 0;
+	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
 	INT8U err = OS_ERR_NONE;
+
+
+	uint32_t DEBUG_timerStart = alt_nticks();
+	uint32_t DEBUG_timerEnde;
+	uint32_t DEBUG_cycletimeOfMainTask;
+	int DEBUG_cicleCounter = 0;
+
 	while (1) {
 		OSSemPend(mainTaskSem, 0, &err);
+
+		DEBUG_timerStart = alt_nticks();
+
+
+
+
 //		printf("Main Task running\n");
 		//RC receiver Test
 //		frameDone = updateChannelsRC();
@@ -174,8 +149,9 @@ void MainTask(void* pdata) {
 
 		//Sensor Test
 		if (SDM_NEW_DATA_AVAILABLE == 1) {
-			err = getSensorData(avgSensorData);
-			err = filterSensorData(avgSensorData, filteredSensorData); //only filter new data
+			err = getSensorData(avgSensorData, &averagedDataDeltaT);
+			err = filterSensorData(avgSensorData, filteredSensorData, averagedDataDeltaT); //only filter new data
+
 
 			//Logging / sensor debugging console-output
 //			int i;
@@ -211,6 +187,8 @@ void MainTask(void* pdata) {
 //			RC_SCALE_TO_PWM = rcValue to PWM output interval [0;210]
 //			 max RCvalue [6400] * RC_SCALE_TO_PWM = PWM value
 
+			uint32_t passedTime = alt_nticks() / alt_ticks_per_second(); // passed Ticks since reset
+			//printf("Seconds: %d\n", (int)passedTime);
 
 			//PID interval [-14; 14]
 			float rcValueScale = 0.05625; //360/6400 - 180;
@@ -225,8 +203,9 @@ void MainTask(void* pdata) {
 			float pidYAWMidVal = PIDYawCalculation((float) (3200 * rcValueScale - 180), (float) filteredSensorData[2]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
 			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
-			float pidToPWMscale = 0.583333; // PID scale value
-			printf("outPi: %f\toutR: %f\toutY: %f\n\n", (pidPITCHMidVal + 180) * pidToPWMscale, (pidROLLMidVal + 180) * pidToPWMscale, (pidYAWMidVal + 180) * pidToPWMscale);
+
+			mapToMotors((float) (3200 * rcValueScale - 180), pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
+			//printf("outPi: %f\toutR: %f\toutY: %f\n\n", (pidPITCHMidVal + 180) * pidToPWMscale, (pidROLLMidVal + 180) * pidToPWMscale, (pidYAWMidVal + 180) * pidToPWMscale);
 
 
 			//TODO PID to motor Mapping. The PID values [-14; 14] have to be scaled properly as well
@@ -265,6 +244,18 @@ void MainTask(void* pdata) {
 		//periodic timer Test
 
 //		postDataToQ(avgSensorData);
+
+
+
+		DEBUG_timerEnde = alt_nticks();
+//		DEBUG_cycletimeOfMainTask *= DEBUG_cicleCounter;
+//		DEBUG_cicleCounter++;
+//		DEBUG_cycletimeOfMainTask += DEBUG_timerEnde - DEBUG_timerStart;
+//		DEBUG_cycletimeOfMainTask /= DEBUG_cicleCounter;
+
+
+		printf("DEBUG_timerEnde:  %d tiks \n", (DEBUG_timerEnde));
+		printf("DEBUG_timerStart:  %d tiks \n", DEBUG_timerStart);
 	}
 }
 
@@ -345,7 +336,7 @@ int main(void) {
 
 	mainTaskSem = OSSemCreate(0);
 	sensorDataManageTaskrSem = OSSemCreate(0);
-	rcTaskSem = OSSemCreate(0);
+	rcTaskSem = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
 
 	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second() * 2,
 			mainTasktimerCallback, NULL); // periodic timer for MainTask

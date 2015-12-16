@@ -44,5 +44,5 @@
  * 	output: int16_t* filteredSensorData
  * 			pointer where the filtered data should be saved
  */
-int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData);
+int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData, uint32_t averagedDataDeltaT);
 #endif

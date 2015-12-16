@@ -6,7 +6,7 @@
  * PID Factors
  */
 #define YawKp 4.5
-#define YawKi 0
+#define YawKi 0.1
 #define YawKd 0
 	
 /*

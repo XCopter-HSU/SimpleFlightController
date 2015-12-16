@@ -35,8 +35,8 @@
 
  * Channel Mapping (not sure)
  *  1 Pitch
- *  2 Aileron
- *  3 Elevator
+ *  2 Aileron/Roll
+ *  3 Elevator/Throttle
  *  4 Yaw
  *  5 Aux/Gyro on MX-12
  *  6 ESC
@@ -57,9 +57,9 @@
 
 //TODO verify correctness of rcValue indices
 #define RC_THROTTLE_INDEX 2
-#define RC_YAW_INDEX 0
+#define RC_YAW_INDEX 3
 #define RC_ROLL_INDEX 1
-#define RC_PITCH_INDEX 3
+#define RC_PITCH_INDEX 0
 
 
 extern OS_EVENT* rcReceiverMutex;
