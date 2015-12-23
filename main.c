@@ -39,6 +39,7 @@
 #include "PIDs/PIDRoll.h"
 #include "PIDs/PIDYaw.h"
 #include "PIDToMotorMapper.h"
+#include "sys/alt_timestamp.h" //for time measurement
 //#include "b_pwmdriver.h" // RC required for testing
 
 
@@ -113,6 +114,7 @@ void postDataToQ(int16_t* data) {
 	}
 }
 
+
 /*
  * Main Task
  */
@@ -131,12 +133,20 @@ void MainTask(void* pdata) {
 	uint32_t DEBUG_cycletimeOfMainTask;
 	int DEBUG_cicleCounter = 0;
 
+	uint32_t timestart;
+	uint32_t timestop;
+
+
+	if (alt_timestamp_start() < 0)
+	{
+		printf("ERROR starting timer");
+	}
+
+
+
 	while (1) {
 		OSSemPend(mainTaskSem, 0, &err);
-
-		DEBUG_timerStart = alt_nticks();
-
-
+		timestart = alt_timestamp();
 
 
 //		printf("Main Task running\n");
@@ -187,9 +197,6 @@ void MainTask(void* pdata) {
 //			RC_SCALE_TO_PWM = rcValue to PWM output interval [0;210]
 //			 max RCvalue [6400] * RC_SCALE_TO_PWM = PWM value
 
-			uint32_t passedTime = alt_nticks() / alt_ticks_per_second(); // passed Ticks since reset
-			//printf("Seconds: %d\n", (int)passedTime);
-
 			//PID interval [-14; 14]
 			float rcValueScale = 0.05625; //360/6400 - 180;
 
@@ -202,7 +209,7 @@ void MainTask(void* pdata) {
 			//assuming X axis from Filter is YAW
 			float pidYAWMidVal = PIDYawCalculation((float) (3200 * rcValueScale - 180), (float) filteredSensorData[2]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
-			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
+//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
 
 			mapToMotors((float) (3200 * rcValueScale - 180), pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
 			//printf("outPi: %f\toutR: %f\toutY: %f\n\n", (pidPITCHMidVal + 180) * pidToPWMscale, (pidROLLMidVal + 180) * pidToPWMscale, (pidYAWMidVal + 180) * pidToPWMscale);
@@ -238,24 +245,20 @@ void MainTask(void* pdata) {
 //
 //		float pidYaw = PIDYawCalculation(rcValue[0],
 //				filteredSensorData[ACC_Z_IDX]); //Yaw getting Compasvalues
-
-		//mapToMotors(rcValue[1], pidPitchGYR, pidPitchGYR, pidYaw); //map pid values to Motor ouput
+//
+//		mapToMotors(rcValue[1], pidPitchGYR, pidPitchGYR, pidYaw); //map pid values to Motor ouput
 
 		//periodic timer Test
 
 //		postDataToQ(avgSensorData);
-
-
-
-		DEBUG_timerEnde = alt_nticks();
+		timestop = alt_timestamp();
 //		DEBUG_cycletimeOfMainTask *= DEBUG_cicleCounter;
 //		DEBUG_cicleCounter++;
 //		DEBUG_cycletimeOfMainTask += DEBUG_timerEnde - DEBUG_timerStart;
 //		DEBUG_cycletimeOfMainTask /= DEBUG_cicleCounter;
 
 
-		printf("DEBUG_timerEnde:  %d tiks \n", (DEBUG_timerEnde));
-		printf("DEBUG_timerStart:  %d tiks \n", DEBUG_timerStart);
+		printf("Control cycle time:  %d us\n", (timestop - timestart)/50); //one tick should be 1us
 	}
 }
 

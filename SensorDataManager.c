@@ -12,8 +12,11 @@
 #include "Drivers/Driver_Accl.h"
 #include "Drivers/Driver_Compa.h"
 #include "Drivers/Driver_Gyro.h"
+#include "includes.h"
 #include <unistd.h>
 #include <stdlib.h>
+
+#include "sys/alt_timestamp.h" //to measure sensor sampling time
 
 #define VALUE_NUM 20
 
@@ -114,11 +117,12 @@ void SensorDataManagerTask(void* pdata){
 	int8_t err = NO_ERR;
 
 	//start
-	uint32_t start  = alt_nticks();
-	uint32_t stop = 0;
+//	uint32_t start = alt_timestamp();
+//	uint32_t stop = 0;
 
 	while(1){
 
+//		start = alt_timestamp();
 		err = readSensorData(rawData); //get newRawData
 
 		acclX[cnt] = rawData[0];	//fill arrays with new raw data
@@ -138,9 +142,10 @@ void SensorDataManagerTask(void* pdata){
 
 			err = avgAllArrays();
 
-			stop =  alt_nticks();
-			averagedDataDeltaT = (stop - start)*1000/alt_ticks_per_second(); //calculate the time needed to get all sensordata in milliseconds
-			start = stop; //restart Timer
+			//measure sensor sampling time
+//			stop =  alt_timestamp();
+			averagedDataDeltaT = 100;//(stop - start); //*1000/alt_ticks_per_second(); //calculate the time needed to get all sensordata in system Ticks/ micro seconds
+//			start = stop; //restart Timer
 
 			SDM_NEW_DATA_AVAILABLE = 1; //new data is available
 		}

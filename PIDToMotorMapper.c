@@ -48,7 +48,7 @@ PWM signal
 		motorQuadx[2] = PIDMIX(+1,+1,+1, pidValues[0],pidValues[1], pidValues[2], pidValues[3]); //REAR_L
 		motorQuadx[3] = PIDMIX(+1,-1,-1, pidValues[0],pidValues[1], pidValues[2], pidValues[3]); //FRONT_L
 		
-		printf("Mix0: %d\tMix1: %d\tMix2: %d\tMix3: %d\n\n", motorQuadx[0], motorQuadx[1], motorQuadx[2], motorQuadx[3]);
+//		printf("Mix0: %d\tMix1: %d\tMix2: %d\tMix3: %d\n\n", motorQuadx[0], motorQuadx[1], motorQuadx[2], motorQuadx[3]);
 		
 		motorQuadx[0] = (motorQuadx[0] + 7000) * 210/112000;
 		motorQuadx[1] = (motorQuadx[1] + 7000) * 210/112000;
@@ -81,7 +81,7 @@ void writeToMotors()
 	motorQuadx[2] = motorQuadx[2] + pwmOffset;
 	motorQuadx[3] = motorQuadx[3] + pwmOffset;
 	
-	printf("Mo0: %d\tMo1: %d\tMo2: %d\tMo3: %d\n\n", motorQuadx[0], motorQuadx[1], motorQuadx[2], motorQuadx[3]);
+//	printf("Mo0: %d\tMo1: %d\tMo2: %d\tMo3: %d\n\n", motorQuadx[0], motorQuadx[1], motorQuadx[2], motorQuadx[3]);
 
 	int16_t err = NO_ERR;	
 	#ifdef QUADX
