@@ -6,14 +6,14 @@
  * PID Factors
  */
 #define YawKp 4.5
-#define YawKi 0.1
-#define YawKd 0
+#define YawKi 0.0
+#define YawKd 8.0
 	
 /*
  * PID maximum and minimum output
  */
-#define YawMaxOut 65535
-#define YawMinOut -65535
+#define YawMaxOut 20
+#define YawMinOut -20
  
 //minimum error for integration
 #define YawEpsilon 0.05f

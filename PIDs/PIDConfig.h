@@ -10,6 +10,6 @@
 #define PWM_LOWER_LIMIT  8
 
 //************ Define PID Sampling Rate ***********//
-#define dT 1
+#define dT 0.005300f //milliseconds, was evaluated by measuring regulation cycle time using alt_timestamp()
 
 #endif

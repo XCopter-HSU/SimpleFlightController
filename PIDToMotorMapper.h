@@ -5,13 +5,14 @@
 #include "config.h"
 
 
-int8_t motorQuadx[4];
-int8_t motorHex[6];
+int motorQuadx[4];
+uint8_t motorHex[6];
 float pidValues[4];
 
 
+float computeCThrottle(float limitedThrottle, float CMix, float pidMix);
 
-float PIDMIX(uint8_t X, uint8_t Y, uint8_t Z, float _throttle, float _roll, float _pitch, float _yaw);
+float PIDMIX(int8_t X, int8_t Y, int8_t Z, float throttle, float roll, float pitch, float yaw);
 
 int8_t mapToMotors(float throttle, float roll, float pitch, float yaw);
 

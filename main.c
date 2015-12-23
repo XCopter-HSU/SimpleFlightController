@@ -69,48 +69,21 @@ void LoggerTask(void* pdata) {
 
 	printf("Starting Logger task...\n");
 	INT8U err = OS_NO_ERR;
-	//int16_t rxLoggerData[9] = {0};
-	int dataCounter = 0;
+	struct logData* rxData = malloc(sizeof(struct logData));
 	while (1) {
 		//reading latest byte out of LOGGER OS Message Que. 2nd argument is OSQPend() is timeout value
 		//OSQPend() should block Task if no new data is in Queue
-		int16_t rxLoggerData = (int16_t) OSQPend(loggerQsem, 0, &err); //returns 0
+		rxData = OSQPend(loggerQsem, 0, &err); //returns 0
 		if (err != OS_NO_ERR) {
 			printf("Logging ERROR Code: %d\n", err);
 		}
 
 		//TODO send rxLoggerData to MCAPI
+		//MCAPI format is defined in struct Logdata.
 
 		//TODO Error handling on ERRORCODE 30 (Que Full) e.g. reset Que
-//		dataCounter++;
-//		if(rxLoggerData != NULL){ //data is not new
-//			if(dataCounter >= 18)
-//			{
-//				dataCounter = 0;
-//				continue;
-//			}
-//
-//			if(dataCounter < 8)
-//			{
-//				printf("LoggerTask running: avgData= %d\n", (int16_t) rxLoggerData);
-//			}
-//
-//			if(dataCounter > 8)
-//			{
-//				printf("LoggerTask running: filteredData= %d\n", (int16_t) rxLoggerData);
-//			}
-//		}
+		printf("LoggerTask running: avgData= %d\n", rxData->raw[0]);
 
-	}
-}
-
-/**
- * function to post data to Logger Queue
- */
-void postDataToQ(int16_t* data) {
-	int i;
-	for (i = 0; i < 9; i++) {
-		OSQPost(loggerQsem, (void*) data[i]); //write new Logging Data in MSG Que
 	}
 }
 
@@ -127,26 +100,10 @@ void MainTask(void* pdata) {
 	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
 	INT8U err = OS_ERR_NONE;
 
-
-	uint32_t DEBUG_timerStart = alt_nticks();
-	uint32_t DEBUG_timerEnde;
-	uint32_t DEBUG_cycletimeOfMainTask;
-	int DEBUG_cicleCounter = 0;
-
-	uint32_t timestart;
-	uint32_t timestop;
-
-
-	if (alt_timestamp_start() < 0)
-	{
-		printf("ERROR starting timer");
-	}
-
-
+	struct logData* loggData = malloc(sizeof(struct logData));
 
 	while (1) {
 		OSSemPend(mainTaskSem, 0, &err);
-		timestart = alt_timestamp();
 
 
 //		printf("Main Task running\n");
@@ -158,7 +115,7 @@ void MainTask(void* pdata) {
 //		}
 
 		//Sensor Test
-		if (SDM_NEW_DATA_AVAILABLE == 1) {
+//		if (SDM_NEW_DATA_AVAILABLE == 1) {
 			err = getSensorData(avgSensorData, &averagedDataDeltaT);
 			err = filterSensorData(avgSensorData, filteredSensorData, averagedDataDeltaT); //only filter new data
 
@@ -201,22 +158,20 @@ void MainTask(void* pdata) {
 			float rcValueScale = 0.05625; //360/6400 - 180;
 
 			//assuming X axis from Filter is PITCH
-			float pidPITCHMidVal = PIDPitchCalculation((float) (3200 * rcValueScale - 180), (float) filteredSensorData[0]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
+			float pidPITCHMidVal = PIDPitchCalculation(0, (float) filteredSensorData[0]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
 			//assuming X axis from Filter is ROLL
-			float pidROLLMidVal = PIDRollCalculation((float) (3200 * rcValueScale - 180), (float) filteredSensorData[1]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
+			float pidROLLMidVal = PIDRollCalculation(0, (float) filteredSensorData[1]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
 			//assuming X axis from Filter is YAW
-			float pidYAWMidVal = PIDYawCalculation((float) (3200 * rcValueScale - 180), (float) filteredSensorData[2]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
+			float pidYAWMidVal = PIDYawCalculation(0, (float) filteredSensorData[2]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
-//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
+			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
 
-			mapToMotors((float) (3200 * rcValueScale - 180), pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
-			//printf("outPi: %f\toutR: %f\toutY: %f\n\n", (pidPITCHMidVal + 180) * pidToPWMscale, (pidROLLMidVal + 180) * pidToPWMscale, (pidYAWMidVal + 180) * pidToPWMscale);
-
+			mapToMotors(60, pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
 
 			//TODO PID to motor Mapping. The PID values [-14; 14] have to be scaled properly as well
-		}
+//		}
 
 		//evaluate standard pid error values to calculate offsets and scale factors
 
@@ -248,17 +203,24 @@ void MainTask(void* pdata) {
 //
 //		mapToMotors(rcValue[1], pidPitchGYR, pidPitchGYR, pidYaw); //map pid values to Motor ouput
 
-		//periodic timer Test
-
-//		postDataToQ(avgSensorData);
-		timestop = alt_timestamp();
-//		DEBUG_cycletimeOfMainTask *= DEBUG_cicleCounter;
-//		DEBUG_cicleCounter++;
-//		DEBUG_cycletimeOfMainTask += DEBUG_timerEnde - DEBUG_timerStart;
-//		DEBUG_cycletimeOfMainTask /= DEBUG_cicleCounter;
 
 
-		printf("Control cycle time:  %d us\n", (timestop - timestart)/50); //one tick should be 1us
+		//Copy new Data to Struct, to send
+		int i;
+		for (i = 0; i < 9; ++i) { //copy logging data to txStruct
+			loggData->raw[i] = avgSensorData[i];
+			loggData->filter[i] = filteredSensorData[i];
+		}
+
+		loggData->pid[0] = pidPITCHMidVal;
+		loggData->pid[1] = pidROLLMidVal;
+		loggData->pid[2] = pidYAWMidVal;
+
+		int j;
+		for (j = 0; j < 8; ++j) {
+			loggData->rawRadio[i] = rcValue[i];
+		}
+//		OSQPost(loggerQsem, (void*) loggData);
 	}
 }
 
@@ -295,31 +257,6 @@ void DriverInit() {
 	initSensors();
 }
 
-/**
- * method to initialize OS related stuff e.g. setup of periodic timers
- *
- * returs an errorcode if occured
- */
-int OSinit() {
-	INT8U err = OS_NO_ERR; //error variable for init errors
-
-	loggerQsem = OSQCreate((void*) &loggerQmessageTable, LOGGER_Q_SIZE); //create Message Queue for LOGGER
-
-	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
-	rcReceiverMutex = OSMutexCreate(RC_RECEIVER_MUTEX_PRIORITY, &err);
-
-	mainTaskSem = OSSemCreate(0);
-	sensorDataManageTaskrSem = OSSemCreate(0);
-	rcTaskSem = OSSemCreate(0);
-
-//	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second()*5, mainTasktimerCallback, NULL); // periodic timer for MainTask
-//
-//	alt_alarm_start(&periodicRCReceiverTaskAlarm, alt_ticks_per_second()*5, RCReceiverTaskTasktimerCallback, NULL); // periodic timer for MainTask
-//
-//	alt_alarm_start(&periodicSensorDataManagerTasktimerAlarm, alt_ticks_per_second()*5, SensorDataManagerTasktimerCallback, NULL); // periodic timer for MainTask
-
-	return err;
-}
 
 /*
  * Starting point for SimpleFlightController
@@ -336,6 +273,7 @@ int main(void) {
 	loggerQsem = OSQCreate((void*) &loggerQmessageTable, LOGGER_Q_SIZE); //create Message Queue for LOGGER
 
 	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
+	rcReceiverMutex = OSMutexCreate(RC_RECEIVER_MUTEX_PRIORITY, &err);
 
 	mainTaskSem = OSSemCreate(0);
 	sensorDataManageTaskrSem = OSSemCreate(0);
