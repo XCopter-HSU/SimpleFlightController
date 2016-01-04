@@ -27,38 +27,32 @@
  *     minutes per iteration.                                             *
  **************************************************************************/
 
-#include <stdio.h>
 #include "includes.h"
+#include "sys/alt_timestamp.h" //for time measurement
 
+#include <stdio.h>
 #include <stdint.h>
-#include "main.h"//contains all semaphores OS_EVENTs for external files // RC required#include "RCReceiver.h" // RC required#include "logger.h"
+#include <stdlib.h>
+#include <math.h>
+
+#include "main.h"//contains all semaphores OS_EVENTs for external files
+#include "RCReceiver.h" // RC required#include "Logger.h"
 #include "SensorDataManager.h"
 #include "SensorDataFilter.h"
-#include <math.h>
 #include "PIDs/PIDPitch.h"
 #include "PIDs/PIDRoll.h"
 #include "PIDs/PIDYaw.h"
 #include "PIDToMotorMapper.h"
-#include "sys/alt_timestamp.h" //for time measurement
-//#include "b_pwmdriver.h" // RC required for testing
 
-
-
-/* Reading UART and parse a SUMD frame then opens a semaphore for other task */
+/* Task for reading UART and parse a SUMD frame then opens a semaphore for other task */
 void RCReceiverTask(void* pdata) {
-	int frameDone = 0; // RC required
 	printf("Starting RC task...\n");
 	INT8U err = OS_NO_ERR;
 	while (1) {
 		//printf for timer testing
 		OSSemPend(rcTaskSem, 0, &err);
 
-//		printf("RC Task running\n");
-//		frameDone = updateChannelsRC(); // RC required
-//		if (frameDone == 1) // RC required
-//		{
-//		  OSSemPost(mainTaskSem);
-//		}
+		err = updateChannelsRC(); // RC required
 	}
 }
 
@@ -98,128 +92,65 @@ void MainTask(void* pdata) {
 	int16_t avgSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
 	uint32_t averagedDataDeltaT = 0;
 	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
-	INT8U err = OS_ERR_NONE;
+	INT8U os_err = OS_ERR_NONE;
+	uint8_t data_err = NO_ERR;
 
 	struct logData* loggData = malloc(sizeof(struct logData));
 
 	while (1) {
-		OSSemPend(mainTaskSem, 0, &err);
+		OSSemPend(mainTaskSem, 0, &os_err);
 
-
-//		printf("Main Task running\n");
-		//RC receiver Test
-//		frameDone = updateChannelsRC();
-//		if (frameDone == 1)
-//		{
-//		  OSSemPost(rcTasksem);
-//		}
 
 		//Sensor Test
-//		if (SDM_NEW_DATA_AVAILABLE == 1) {
-			err = getSensorData(avgSensorData, &averagedDataDeltaT);
-			err = filterSensorData(avgSensorData, filteredSensorData, averagedDataDeltaT); //only filter new data
+		if (SDM_NEW_DATA_AVAILABLE == 1) {
+			os_err = getSensorData(avgSensorData, &averagedDataDeltaT);
+			data_err = filterSensorData(avgSensorData, filteredSensorData, averagedDataDeltaT); //only filter new data
 
-
-			//Logging / sensor debugging console-output
-//			int i;
-//			//printf("A:");
-//			for (i = 0; i < 9; ++i) {
-//				if (i % 3 == 0)
-//					//printf("\t");
-//
-//				err = OSQPost(loggerQsem, (void*) avgSensorData[i]); //write new Logging Data in MSG Que
-//				//			err = OSQPost(loggerQsem, (void*) filteredSensorData[i]);
-//
-//				//printf("%d \t", (int16_t) avgSensorData[i]);
-//				if (err != OS_ERR_NONE) {
-//					printf("ERROR occured Code: %d\n", err);
-//					err = 0;
-//				}
+/*			RC DATA OUTPUT TESTING
+ *			RC_SCALE_TO_PWM = rcValue to PWM output interval [0;210]
+ *			 max RCvalue [6400] * RC_SCALE_TO_PWM = PWM value
+ */
+//			int count = 0;
+//			count++;
+//			if (RC_RECEIVER_NEW_DATA_AVAILABLE == 1 && count == 10) // RC required
+//			{
+//				count = 0;
+//				printf("THROTTLE: %d\tROLL: %d\tYAW: %d\tPITCH: %d\n", rcValue[RC_THROTTLE_INDEX], rcValue[RC_ROLL_INDEX], rcValue[RC_YAW_INDEX], rcValue[RC_PITCH_INDEX]);
 //			}
-//			//printf("\n");
-//			printf("F:");
-//			for (i = 0; i < 9; ++i) {
-//				if (i % 3 == 0)
-//					printf("\t");
-//
-//				printf("%.3f\t", (float) filteredSensorData[i] * (180.0F / M_PI));
-//				if (err != OS_ERR_NONE) {
-//					printf("ERROR occured Code: %d\n", err);
-//					err = 0;
-//				}
-//			}
-//			printf("\n");
 
 
-//			RC_SCALE_TO_PWM = rcValue to PWM output interval [0;210]
-//			 max RCvalue [6400] * RC_SCALE_TO_PWM = PWM value
-
-			//PID interval [-14; 14]
 			float rcValueScale = 0.05625; //360/6400 - 180;
 
 			//assuming X axis from Filter is PITCH
-			float pidPITCHMidVal = PIDPitchCalculation(0, (float) filteredSensorData[0]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
+			float pidPITCHMidVal = PIDPitchCalculation(rcValue[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
 			//assuming X axis from Filter is ROLL
-			float pidROLLMidVal = PIDRollCalculation(0, (float) filteredSensorData[1]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
+			float pidROLLMidVal = PIDRollCalculation(rcValue[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
 			//assuming X axis from Filter is YAW
-			float pidYAWMidVal = PIDYawCalculation(0, (float) filteredSensorData[2]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
+			float pidYAWMidVal = PIDYawCalculation(rcValue[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
 
-			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
+//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
 
-			mapToMotors(60, pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
+			mapToMotors(rcValue[RC_THROTTLE_INDEX], pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
+		}
 
-			//TODO PID to motor Mapping. The PID values [-14; 14] have to be scaled properly as well
+
+		//TODO Copy new Data to Struct for logging
+//		int i;
+//		for (i = 0; i < 9; ++i) { //copy logging data to txStruct
+//			loggData->raw[i] = avgSensorData[i];
+//			loggData->filter[i] = filteredSensorData[i];
 //		}
-
-		//evaluate standard pid error values to calculate offsets and scale factors
-
-
-
-
-		//PID construct, differ between basic balancing and restoring:
-		/**
-		 * (rcCommand, ACC) -> (Balance PID err AND GYRO) -> MOTOR output
-		 */
-		//float pidPitchACC = PIDPitchCalculation(rcValue[2] * 0.0328125f, filteredSensorData[ACC_Y_IDX]); //pitch should get Pitch related values of Sensors
-		//Restore mode hold horizon
-		/*
-		float pidPitchGYR = PIDPitchCalculation(pidPitchACC,
-				filteredSensorData[GYR_X_IDX]); //2nd Stage PID
-		*/
-
-//		float pidRollACC = PIDRollCalculation(rcValue[3],
-//				filteredSensorData[ACC_X_IDX]); //pitch should get Pitch related values of Sensors
 //
-//		/*
-//		//Restore mode hold horizon
-//		float pidRollGYR = PIDPitchCalculation(pidRollACC,
-//				filteredSensorData[GYR_Y_IDX]); //2nd Stage PID
-//		*/
+//		loggData->pid[0] = pidPITCHMidVal;
+//		loggData->pid[1] = pidROLLMidVal;
+//		loggData->pid[2] = pidYAWMidVal;
 //
-//		float pidYaw = PIDYawCalculation(rcValue[0],
-//				filteredSensorData[ACC_Z_IDX]); //Yaw getting Compasvalues
-//
-//		mapToMotors(rcValue[1], pidPitchGYR, pidPitchGYR, pidYaw); //map pid values to Motor ouput
-
-
-
-		//Copy new Data to Struct, to send
-		int i;
-		for (i = 0; i < 9; ++i) { //copy logging data to txStruct
-			loggData->raw[i] = avgSensorData[i];
-			loggData->filter[i] = filteredSensorData[i];
-		}
-
-		loggData->pid[0] = pidPITCHMidVal;
-		loggData->pid[1] = pidROLLMidVal;
-		loggData->pid[2] = pidYAWMidVal;
-
-		int j;
-		for (j = 0; j < 8; ++j) {
-			loggData->rawRadio[i] = rcValue[i];
-		}
+//		int j;
+//		for (j = 0; j < 8; ++j) {
+//			loggData->rawRadio[i] = rcValue[i];
+//		}
 //		OSQPost(loggerQsem, (void*) loggData);
 	}
 }
@@ -229,7 +160,7 @@ void MainTask(void* pdata) {
  */
 alt_u32 mainTasktimerCallback(void* context) {
 	OSSemPost(mainTaskSem);
-	return alt_ticks_per_second() * 200 / 1000; //must return the periode ticks
+	return alt_ticks_per_second() * MAIN_TASK_PERIOD / 1000; //must return the periode ticks
 }
 
 /*
@@ -237,7 +168,7 @@ alt_u32 mainTasktimerCallback(void* context) {
  */
 alt_u32 RCReceiverTaskTasktimerCallback(void* context) {
 	OSSemPost(rcTaskSem);
-	return alt_ticks_per_second() * 500 / 1000; //must return the periode ticks
+	return alt_ticks_per_second() * RCRECEIVER_TASK_PERIOD / 1000; //must return the periode ticks
 }
 
 /*
@@ -245,7 +176,7 @@ alt_u32 RCReceiverTaskTasktimerCallback(void* context) {
  */
 alt_u32 SensorDataManagerTasktimerCallback(void* context) {
 	OSSemPost(sensorDataManageTaskrSem);
-	return alt_ticks_per_second() * 100 / 1000; //must return the periode ticks
+	return alt_ticks_per_second() * SENSORDATAMANAGER_TASK_PERIOD / 1000; //must return the periode ticks
 }
 
 /**
@@ -266,10 +197,12 @@ int main(void) {
 	printf("Starting Program\n");
 	printf("initialize components...");
 	DriverInit();
-//	OSInit();
 
 	INT8U err = OS_NO_ERR; //error variable for init errors
 
+	/*
+	 * create mutex and semaphores
+	 */
 	loggerQsem = OSQCreate((void*) &loggerQmessageTable, LOGGER_Q_SIZE); //create Message Queue for LOGGER
 
 	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
@@ -279,6 +212,9 @@ int main(void) {
 	sensorDataManageTaskrSem = OSSemCreate(0);
 	rcTaskSem = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
 
+	/*
+	 * init state -> wait 2 seconds (alt_ticks_per_second() * 2) until every task starts
+	 */
 	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second() * 2,
 			mainTasktimerCallback, NULL); // periodic timer for MainTask
 
@@ -289,9 +225,8 @@ int main(void) {
 			alt_ticks_per_second() * 2, SensorDataManagerTasktimerCallback,
 			NULL); // periodic timer for MainTask
 
-	printf("done\n");
+	printf("Init done\n");
 
-//	INT8U err = OS_NO_ERR;
 	/**
 	 * create RCReceiver Task
 	 */

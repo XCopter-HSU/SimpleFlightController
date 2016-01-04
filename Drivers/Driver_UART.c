@@ -1,5 +1,5 @@
 /*
- * Driver_UART.c
+ * PID_Yaw.c
  *
  *  Created on: 28.10.2015
  *      Author: aott
@@ -28,9 +28,7 @@ void ISRUART(void* context, unsigned int id) {
 	if (stat & ALTERA_AVALON_UART_STATUS_RRDY_MSK) { //Check if UART is ready to offer access to the RXDATA register
 		chr = IORD_ALTERA_AVALON_UART_RXDATA(UART_0_BASE);
 		IOWR_ALTERA_AVALON_UART_STATUS(UART_0_BASE, 0); //clear the status bits again
-		//if (chr == 254) {
 		OSQPost(uartQsem, (void*) chr); //write new char in que
-		//}
 	}
 	IOWR_ALTERA_AVALON_UART_STATUS(UART_0_BASE, 0); //reset interrupt
 }
@@ -64,9 +62,9 @@ void diverInitUART(int baud) {
 INT8U  serialRead(INT16U timeout)
 {
 	INT8U err = OS_NO_ERR;
-	INT8U  rx = (INT8U) OSQPend(uartQsem, timeout, (INT8U) err); //reading latest byte out of OS Message Que
+	INT8U  rx = (INT8U) OSQPend(uartQsem, timeout, &err); //reading latest byte out of OS Message Que
 	if (err != 0) {
-		printf("errorcode: %d\n", err);
+		printf("Serial Read Error: %d\n", err);
 	}
 	return rx;
 }
@@ -76,5 +74,5 @@ INT8U  serialRead(INT16U timeout)
  */
 void flushUARTBuffer()
 {
-	OSQFlush(uartQsem); //reset msg que
+	OSQFlush(uartQsem); //reset msg que usefull for cleaning invalid data
 }

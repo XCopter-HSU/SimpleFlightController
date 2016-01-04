@@ -8,15 +8,16 @@
  *
  */
 
+#include <unistd.h>
+#include <stdlib.h>
+
+#include "includes.h"	//us os ii
+#include "sys/alt_timestamp.h" //to measure sensor sampling time
+
 #include "SensorDataManager.h"
 #include "Drivers/Driver_Accl.h"
 #include "Drivers/Driver_Compa.h"
 #include "Drivers/Driver_Gyro.h"
-#include "includes.h"
-#include <unistd.h>
-#include <stdlib.h>
-
-#include "sys/alt_timestamp.h" //to measure sensor sampling time
 
 #define VALUE_NUM 20
 
@@ -72,10 +73,6 @@ int8_t avgAllArrays(){
 			sum += (arrs[i])[j];
  		}
 		avgTempData[i] = sum/VALUE_NUM;
-	/**     // static average array with 5 values
-	#define ARR_AVG5(arr) ((arr[0]+arr[1]+arr[2]+arr[3]+arr[4])/VALUE_NUM)
-	avgTempData[0] = ARR_AVG5(aX);
-	*/
 	}
 
 	//get Semaphore for the avg Data
@@ -90,10 +87,10 @@ int8_t avgAllArrays(){
 }
 
 
-int8_t getSensorData(int16_t* avgSensorData, uint32_t* deltaTime){
+INT8U getSensorData(int16_t* avgSensorData, uint32_t* deltaTime){
 
 	INT8U err = OS_NO_ERR;
-	int i;
+	int i = 0;
 
 	OSMutexPend(sensorDataMutex, 0, &err);//Acquire Mutex for the avg Data
 	for(i = 0;i <9 ;i++){
@@ -117,12 +114,17 @@ void SensorDataManagerTask(void* pdata){
 	int8_t err = NO_ERR;
 
 	//start
-//	uint32_t start = alt_timestamp();
-//	uint32_t stop = 0;
+	uint32_t start = alt_timestamp();
+	uint32_t stop = 0;
+
+
+	if (alt_timestamp() == 0 && alt_timestamp_start() < 0)
+	{
+		printf("ERROR starting timer");
+	}
 
 	while(1){
-
-//		start = alt_timestamp();
+		start = alt_timestamp();
 		err = readSensorData(rawData); //get newRawData
 
 		acclX[cnt] = rawData[0];	//fill arrays with new raw data
@@ -143,9 +145,14 @@ void SensorDataManagerTask(void* pdata){
 			err = avgAllArrays();
 
 			//measure sensor sampling time
-//			stop =  alt_timestamp();
-			averagedDataDeltaT = 100;//(stop - start); //*1000/alt_ticks_per_second(); //calculate the time needed to get all sensordata in system Ticks/ micro seconds
-//			start = stop; //restart Timer
+			stop =  alt_timestamp();
+			averagedDataDeltaT = (stop - start) / 50; //*1000/alt_ticks_per_second(); //calculate the time needed to get all sensordata in system Ticks/ micro seconds
+
+
+			if (alt_timestamp() == 0 && alt_timestamp_start() < 0)
+			{
+				printf("ERROR starting timer");
+			}
 
 			SDM_NEW_DATA_AVAILABLE = 1; //new data is available
 		}

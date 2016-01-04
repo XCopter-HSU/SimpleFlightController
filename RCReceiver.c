@@ -5,39 +5,22 @@
  *      Author: hoeft
  */
 
-#include "RCreceiver.h"
-#include "Drivers/Driver_UART.h"
+#include "includes.h" //UCOS ii stuff not requiered if driver takes care of OS functions
+
 #include <stdint.h>
-//#include "includes.h" //UCOS ii stuff not requiered if driver takes care of OS functions
+
+#include "RCReceiver.h"
+#include "Drivers/Driver_UART.h"
+#include "Errorcodes.h"
 
 typedef unsigned char uchar_t;
 
 int8_t RC_RECEIVER_NEW_DATA_AVAILABLE = 0; //update flag if current Data was updated successfully
-
-uint16_t rcValue[SUMD_MAXCHAN]; //extern value will be updated by updateChannelsRC, declared in main.h
+int16_t rcValue[SUMD_MAXCHAN]; //extern value will be updated by updateChannelsRC
 
 static uint8_t sumdIndex=0;
 static uint8_t sumdSize=0;
 static uint8_t sumd[SUMD_BUFFSIZE]={0};
-
-
-///**
-// * > mfw driver would be too complicated, and has to be rewritten
-// *
-// * custom ISR will fill up raBytes
-// *
-// * will open semaphore if a SUMD-frame was fully received
-// *
-// * a custom ISR is would be complicated. there is a simpler way
-// */
-//void sumdISR() //must be defined above initReceiver
-//{
-//	static uint8_t sumdSize = 0;
-//	if (sumdSize == SUMD_BUFFSIZE) {
-//		sumdFrameFilled = 1;
-//	}
-////	sumd[sumdIndex++] = val;
-//}
 
 
 /**
@@ -45,23 +28,22 @@ static uint8_t sumd[SUMD_BUFFSIZE]={0};
  */
 void initRCreceiver()
 {
-	diverInitUART(115200); //init uart
-//	registerUARTinterruptISR(sumdISR);
-//	registerUARTinterrupt(); // setup UART interrupt
+	int baud = 115200;
+	diverInitUART(baud); //init uart
 }
 
 
 uint8_t getRCvalues(uint16_t* newRCvalues)
 {
-	INT8U err = OS_NO_ERR;
-	int i;
+	INT8U err = NO_ERR;
+	int i = 0;
 
 	OSMutexPend(rcReceiverMutex, 0, &err);//Acquire Mutex for the avg Data
 	for(i = 0;i < SUMD_MAXCHAN;i++){
 		newRCvalues[i] = rcValue[i];
 	}
 	RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
-//	newDataAvailable = 0;
+
 	err = OSMutexPost(rcReceiverMutex);//release Semaphore for the avg Data
 
 	return err;
@@ -99,8 +81,8 @@ uint8_t crcRawFrameData() {
 /**
  * should be handle like a task
  */
-int updateChannelsRC()
-{
+int8_t updateChannelsRC() {
+	int8_t err = 0;
 //	uchar_t rawByte = (uchar_t *)OSQPend(uartQsemMsg, 100, NULL);
 	uchar_t rawByte = serialRead(0); //reading latest byte
 
@@ -120,7 +102,8 @@ int updateChannelsRC()
 	if (sumdIndex == sumdSize * 2 + 5) { //SUMD frame is now completely done, the actural receiver Channel data has to be evaluated now
 		if(crcRawFrameData() != 1)
 		{
-			return 0; //exit if a crc Error occurred
+			err = ERR_CRC_RC_RECEIVER;
+			return err; //exit if a crc Error occurred
 		}
 
 		sumdIndex = 0; //reset the index counter
@@ -137,18 +120,24 @@ int updateChannelsRC()
 
 			rcValue[b] -= 8800; //now the range of the RC value goes from 0 to 6400
 
+			tmp += 2; //increasing pointer to next channel high byte
+
+			//Scale Throttle to percent
+			if (b == RC_THROTTLE_INDEX) {
+				rcValue[b] /= 64;
+				continue;
+			}
+
 			//360/6400 = 0,05625 Value to scale rcValue to go from 0 to 360
 			//add offset to make the rcValues go from -180 to 180 max
-
 			//Pitch value should be between 90deg and -90deg
 			//180/6400 = 0,028125 Scale RC to 90deg
 			rcValue[b] *= (b == RC_PITCH_INDEX) ? 0.028125 : 0.05625;
 			rcValue[b] -= (b == RC_PITCH_INDEX) ? 90 : 180;
 
-			tmp += 2; //increasing pointer to next channel high byte
 		}
 		RC_RECEIVER_NEW_DATA_AVAILABLE = 1;
-		return 1; //reading RX is done
+		return err; //reading RX is done
 	}
-	return 0;
+	return err;
 }

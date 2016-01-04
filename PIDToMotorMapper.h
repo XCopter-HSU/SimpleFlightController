@@ -2,7 +2,8 @@
 #define PIDToMotorMapper__
 
 #include <stdint.h>
-#include "config.h"
+
+#define QUADX 1
 
 
 int motorQuadx[4];
@@ -16,6 +17,6 @@ float PIDMIX(int8_t X, int8_t Y, int8_t Z, float throttle, float roll, float pit
 
 int8_t mapToMotors(float throttle, float roll, float pitch, float yaw);
 
-void writeToMotors();
+int8_t writeToMotors();
 
 #endif

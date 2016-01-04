@@ -32,6 +32,10 @@
 #define MAG_Y_IDX 7
 #define MAG_Z_IDX 8
 
+#define EULER_ROLL_INDEX	0
+#define EULER_PITCH_INDEX	1
+#define EULER_YAW_INDEX		2
+
 /**
  * This method filters previous averaged sensor data form the SensorDataManager
  *

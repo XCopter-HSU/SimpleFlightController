@@ -1,6 +1,7 @@
+#include <stdlib.h>
+
 #include "PIDYaw.h"
 #include "PIDConfig.h"
-#include "stdlib.h"
 
 float PIDYawCalculation(float setpoint, float actualPosition) {
 
@@ -37,3 +38,8 @@ float PIDYawCalculation(float setpoint, float actualPosition) {
 	
 	return output;
 }
+
+
+/**
+ * BIN GLEICH WIEDER DA by flo
+ */

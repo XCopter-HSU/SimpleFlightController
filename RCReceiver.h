@@ -1,5 +1,4 @@
 /*
- * PID_Yaw.h
  *
  *  Created on: 28.10.2015
  *      Author: hoeft
@@ -46,8 +45,10 @@
 #ifndef RCRECEIVER_H_
 #define RCRECEIVER_H_
 
+
+#include "includes.h" //UC OS II
+
 #include <stdint.h>
-#include "includes.h"
 
 #define SUMD_SYNCBYTE 0xA8
 #define SUMD_MAXCHAN 8
@@ -58,8 +59,8 @@
 //TODO verify correctness of rcValue indices
 #define RC_THROTTLE_INDEX 2
 #define RC_YAW_INDEX 3
-#define RC_ROLL_INDEX 1
-#define RC_PITCH_INDEX 0
+#define RC_ROLL_INDEX 0
+#define RC_PITCH_INDEX 1
 
 
 extern OS_EVENT* rcReceiverMutex;
@@ -83,7 +84,7 @@ uint8_t getRCvalues(uint16_t* newRCvalues);
  *
  * will update global pointer with 16bit rc channel values
  */
-int updateChannelsRC();
+int8_t updateChannelsRC();
 
 //Kann man machen, muss man aber nicht
 //struct SUMD_Frame {

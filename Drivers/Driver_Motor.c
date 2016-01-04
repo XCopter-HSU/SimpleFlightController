@@ -84,6 +84,7 @@ int8_t MotorDriver_setSpeedPercent(uint8_t speed, enum Motor motor) {
 		return ERR_MOTOR_ILLEGAL_RANGE;
 	}
 	speed = speed * ((float) 255 / 100);
+	//TODO limit pwm output to interval [8; 218]
 	MotorDriver_setSpeed(speed, motor);
 
 	return NO_ERR;

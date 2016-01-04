@@ -20,9 +20,11 @@
 #ifndef SENSORDATAMANAGER_H_
 #define SENSORDATAMANAGER_H_
 
-#include "Errorcodes.h"
-#include "stdint.h" // Include stdint.h for the use of Integers with a defined size
+#include <stdint.h> // Include stdint.h for the use of Integers with a defined size
 #include "includes.h"
+
+
+#include "Errorcodes.h"
 
 extern OS_EVENT* sensorDataMutex;
 
@@ -42,7 +44,7 @@ int8_t readSensorData(int16_t* rawSensorData);
  * returns the averaged data from Task
  * interface to use the SensorDataManager
  */
-int8_t getSensorData(int16_t* avgSensorData, uint32_t* deltaTime);
+INT8U getSensorData(int16_t* avgSensorData, uint32_t* deltaTime);
 
 int8_t initSensors();
 

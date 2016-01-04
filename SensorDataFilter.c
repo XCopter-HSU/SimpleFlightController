@@ -8,24 +8,24 @@
  *
  */
 
-#include "SensorDataFilter.h"
-#include "Errorcodes.h"
 #include <math.h>
 #include <stdint.h>
-#include "stdlib.h"
+#include <stdlib.h>
 
-//#define M_PI 3.14159265359
+
+#include "SensorDataFilter.h"
+#include "Errorcodes.h"
+
 #define true 1
 #define false 0
 
 /*
- * Sensor Roh Daten arrays
+ * raw sensor data array
  */
 int raw_values_acc[9]; // stores avg. raw sensor data: angle_x/y/z, omega_/x/y/z, magnet_x/y/z
 
 /*
- * umrechnungs konstanten
- * kann es sein, dass gyroSens abweicht je nach sensor?!
+ * unit conversion constants
  */
 const float gyroSens = 14.375;           // convert lsb to rad/sec (gyro output)
 const float dtor = M_PI / 180.0F;          // convert degree to rad
@@ -36,7 +36,7 @@ float deltaT = 0.01; // time steps in units of seconds   TODO:!!!!!!!GET STEPS!!
 //TODO
 
 /*
- * accelerometer constants
+ * accelerometer calibration constants (measured by hand)
  */
 const float ax_offset = 13;      // calibration of accelerometer values:
 const float ay_offset = -2; 		// (accelX*accelX) + (accelY*accelY) * (accelZ*accelZ) should be independant of the orientation of the accelerometer
@@ -46,25 +46,23 @@ const float ax_scale = 300.0/262.0; //1.145038
 const float ay_scale = 300.0/267.0;
 const float az_scale = 300.0/250.0;
 
-// ?!
 uint8_t first = true;
-
 uint8_t reduced[3] = { false, false, false };
 
 /*
- * messwerte ?
+ * measured value
  */
 //measured position
-//position x = winkel
+//position x = angle
 float x_m[3] = { 0.0, 0.0, 0.0 };
 //measured velocity
-//velocity v = winkel geschw
+//velocity v = angle velocity
 float v_m[3] = { 0.0, 0.0, 0.0 };
-//? velocity offset?!
+//? velocity offsets?!
 float vo_m[3] = { 0.0, 0.0, 0.0 };
 
 /*
- * schätzwerte
+ * predicted values
  */
 //position x
 float x_p[3] = { 0.0, 0.0, 0.0 };
@@ -72,7 +70,7 @@ float x_p[3] = { 0.0, 0.0, 0.0 };
 float v_p[3] = { 0.0, 0.0, 0.0 };
 
 /*
- * delta
+ * deltas
  */
 //position x = winkel
 float x_d[3] = { 0.0, 0.0, 0.0 };
@@ -88,14 +86,14 @@ float x_s[3] = { 0.0, 0.0, 0.0 };
 float v_s[3] = { 0.0, 0.0, 0.0 };
 
 /*
- * alpha beta , mittel gyro accl factors
+ * alpha beta , mid gyro & accl factors
  */
 float r_f[3] = { 0.3, 0.3, 0.3 };
 float r_a[3] = { 0.4, 0.4, 0.4 };
 float r_b[3] = { 0.1, 0.1, 0.1 };
 
 /*
- * sensor daten werte nach normierung / anpassung
+ * sensor data after norming
  */
 //accelerometer
 float angle[3] = { 0.0, 0.0, 0.0 };
@@ -105,9 +103,9 @@ float omega[3] = { 0.0, 0.0, 0.0 };
 float mag[3] = { 0.0, 0.0, 0.0 };
 
 /*
- * end ergebnis schätzwerte
+ * final predicted values
  */
-//accelerometer perdicted ?
+//accelerometer predicted
 float angle_p[3] = { 0.0, 0.0, 0.0 };
 //gyroscope predicted
 float omega_p[3] = { 0.0, 0.0, 0.0 };
@@ -140,7 +138,7 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
 	accelY = accelY / g;
 	accelZ = accelZ / g;
 
-	//referenz koordinaten system translation (sensor spezifisch)
+	//reference coordinate system translation (sensor specific)
 	float omegaX = -raw_values[GYR_X_IDX] * dtor / gyroSens; // [rad/s]
 	float omegaY = raw_values[GYR_Y_IDX] * dtor / gyroSens; // [rad/s]
 	float omegaZ = raw_values[GYR_Z_IDX] * dtor / gyroSens; // [rad/s]
@@ -275,7 +273,7 @@ void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omeg
 				reduced[i] = false;
 			}
 
-			//fehler residuum
+			//error residuum
 			x_s[i] = x_p[i] + (r_a[i] * x_d[i]);
 			v_s[i] = v_p[i] + (r_b[i] * v_d[i]);
 
@@ -310,7 +308,7 @@ void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omeg
 
 int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData, uint32_t averagedDataDelatT){
 
-	deltaT = averagedDataDelatT/1000.0; //update deltaT for all functions and calculate from millisecond to second
+	deltaT = averagedDataDelatT / 1000.0; //update deltaT for all functions and calculate from millisecond to second
 
 	//convert raw data into angles etc
 	getRawData(angle, omega, mag, avgSensorData);
@@ -341,7 +339,6 @@ int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData, uint3
 	filteredSensorData[7] = mag[1];
 	//compass_z
 	filteredSensorData[8] = mag[2];
-
 
 
 	return NO_ERR;

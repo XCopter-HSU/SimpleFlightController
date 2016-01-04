@@ -10,15 +10,7 @@
 
 #include <stdint.h>
 
-extern OS_EVENT* uartQsem; //message que for uart // RC required
-
-extern OS_EVENT* loggerQsem; // logger required
-
-extern OS_EVENT* sendorDataMutex;
-
-extern OS_EVENT* rcReceiverMutex;
-
-extern uint16_t rcValue[8]; //rc values will be updated by the RCcontroller
+extern int16_t rcValue[8]; //rc values will be updated by the RCcontroller
 
 extern INT8U* err;
 
@@ -61,15 +53,18 @@ OS_EVENT* sensorDataManageTaskrSem;
 OS_EVENT* sensorDataMutex; //global mutex for SensorDataManager
 OS_EVENT* rcReceiverMutex; //global mutex to secure the rcValue Array
 
-/*global variables*/
-
+/*altera alarms*/
 static alt_alarm periodicMainTaskAlarm;
 static alt_alarm periodicRCReceiverTaskAlarm;
 static alt_alarm periodicSensorDataManagerTasktimerAlarm;
 
-uint16_t rcValue[8]; //contains rc commands will be updated by the receiver task // RC required
+/*TASK PERIODS in milli sec*/
+#define MAIN_TASK_PERIOD				20
+#define SENSORDATAMANAGER_TASK_PERIOD	100
+#define RCRECEIVER_TASK_PERIOD			50
 
 
+/*Logger Data struct*/
 struct logData{
 	int16_t raw[9];
 	int16_t filter[9];
