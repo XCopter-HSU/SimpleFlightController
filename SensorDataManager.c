@@ -197,7 +197,7 @@ int8_t getGyroCalibrationOffset() {
 
 	int16_t j;
 
-	int32_t difference[3] = {0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF}; // 0xFFFFFFF = 2147483647 = SingedInterger32.MAX_VALUE
+	int32_t difference[3] = {0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF}; // 0x7FFFFFFF = 2147483647 = SingedInterger32.MAX_VALUE
 	int32_t lastValues[3] = {0};
 
 
