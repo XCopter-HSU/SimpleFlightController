@@ -38,13 +38,13 @@ uint8_t getRCvalues(uint16_t* newRCvalues)
 	INT8U err = NO_ERR;
 	int i = 0;
 
-	OSMutexPend(rcReceiverMutex, 0, &err);//Acquire Mutex for the avg Data
+	OSMutexPend(rcReceiverMutex, 0, &err);//Acquire Mutex for the rcValue[]
 	for(i = 0;i < SUMD_MAXCHAN;i++){
 		newRCvalues[i] = rcValue[i];
 	}
 	RC_RECEIVER_NEW_DATA_AVAILABLE = 0;
 
-	err = OSMutexPost(rcReceiverMutex);//release Semaphore for the avg Data
+	err = OSMutexPost(rcReceiverMutex);//release Semaphore for the rcValue[]
 
 	return err;
 }
@@ -124,7 +124,7 @@ int8_t updateChannelsRC() {
 
 			//Scale Throttle to percent
 			if (b == RC_THROTTLE_INDEX) {
-				rcValue[b] /= 64;
+				rcValue[b] /= 64;   // Throttle range from 0 to 100
 				continue;
 			}
 
