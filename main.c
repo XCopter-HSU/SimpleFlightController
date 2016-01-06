@@ -36,7 +36,8 @@
 #include <math.h>
 
 #include "main.h"//contains all semaphores OS_EVENTs for external files
-#include "RCReceiver.h" // RC required#include "Logger.h"
+#include "RCReceiver.h" // RC required
+#include "Logger.h"
 #include "SensorDataManager.h"
 #include "SensorDataFilter.h"
 #include "PIDs/PIDPitch.h"

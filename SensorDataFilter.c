@@ -25,27 +25,8 @@
 int raw_values_acc[9]; // stores avg. raw sensor data: angle_x/y/z, omega_/x/y/z, magnet_x/y/z
 
 /*
- * unit conversion constants
+ * flags used in computation
  */
-const float gyroSens = 14.375;           // convert lsb to rad/sec (gyro output)
-const float dtor = M_PI / 180.0F;          // convert degree to rad
-const float rtod = 180.0F / M_PI;          // convert rad to degree
-
-//TODO //0.2 = 200ms because maintask periode is 200ms
-float deltaT = 0.01; // time steps in units of seconds   TODO:!!!!!!!GET STEPS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//TODO
-
-/*
- * accelerometer calibration constants (measured by hand)
- */
-const float ax_offset = 13;      // calibration of accelerometer values:
-const float ay_offset = -2; 		// (accelX*accelX) + (accelY*accelY) * (accelZ*accelZ) should be independant of the orientation of the accelerometer
-const float az_offset = 28;
-
-const float ax_scale = 300.0/262.0; //1.145038
-const float ay_scale = 300.0/267.0;
-const float az_scale = 300.0/250.0;
-
 uint8_t first = true;
 uint8_t reduced[3] = { false, false, false };
 
@@ -174,9 +155,9 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
  *
  * output parameter
  *	- angle_p
- *		pointer on predicted accelerometer angle array
+ *		pointer on predicted euler angle array
  *	- omega_p
- *		pointer on predicted gyroscope angular velocity array
+ *		pointer on predicted angular velocity array
  *
  * input parameter
  *	- angle_m
