@@ -10,15 +10,10 @@
 
 #include <stdint.h>
 
-extern int16_t rcValue[8]; //rc values will be updated by the RCcontroller
-
 extern INT8U* err;
 
 //extern void SensorDataManagerTask(); // external SensorTask
 
-
-//misc Defines
-#define RC_SCALE_TO_PWM 0.0328125f //factor to normalize rcValue to PWM ouput value intervall [0, 210]
 
 /* Definition of Task Stacks */
 #define   TASK_STACKSIZE       2048
@@ -63,6 +58,10 @@ static alt_alarm periodicSensorDataManagerTasktimerAlarm;
 #define SENSORDATAMANAGER_TASK_PERIOD	100
 #define RCRECEIVER_TASK_PERIOD			50
 
+/* TASK start up delay in seconds*/
+#define MAIN_TASK_DELAY					3
+#define RC_TASK_DELAY					2
+#define SENSORDATA_TASK_DELAY			2
 
 /*Logger Data struct*/
 struct logData{

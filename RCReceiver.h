@@ -86,6 +86,8 @@ uint8_t getRCvalues(uint16_t* newRCvalues);
  */
 int8_t updateChannelsRC();
 
+void RCReceiverTask(void* pdata); //
+
 //Kann man machen, muss man aber nicht
 //struct SUMD_Frame {
 //	uint8_t vendorID;

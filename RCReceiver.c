@@ -113,8 +113,11 @@ int8_t updateChannelsRC() {
 
 		uint8_t *tmp = &(sumd[3]); //creating pointer to first high byte (3rd SUMD-frame)
 		uint8_t b = 0;
+
+		OSMutexPend(rcReceiverMutex, 0, &err);//Acquire Mutex for the rcValue[]
 		for (b = 0; b < sumdSize; b++)// appending high byte and the low byte to one value
 		{
+
 			rcValue[b] = (tmp[0] << 8) | tmp[1]; //removed >> 3 from MultiWii example
 		//the RCvalues musst be converted to be compatible for
 
@@ -137,6 +140,7 @@ int8_t updateChannelsRC() {
 
 		}
 		RC_RECEIVER_NEW_DATA_AVAILABLE = 1;
+		err = OSMutexPost(rcReceiverMutex);//release Semaphore for the rcValue[]
 		return err; //reading RX is done
 	}
 	return err;

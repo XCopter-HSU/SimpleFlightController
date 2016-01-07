@@ -1,32 +1,3 @@
-/*************************************************************************
- * Copyright (c) 2004 Altera Corporation, San Jose, California, USA.      *
- * All rights reserved. All use of this software and documentation is     *
- * subject to the License Agreement located at the end of this file below.*
- **************************************************************************
- * Description:                                                           *
- * The following is a simple hello world program running MicroC/OS-II.The *
- * purpose of the design is to be a very simple application that just     *
- * demonstrates MicroC/OS-II running on NIOS II.The design doesn't account*
- * for issues such as checking system call return codes. etc.             *
- *                                                                        *
- * Requirements:                                                          *
- *   -Supported Example Hardware Platforms                                *
- *     Standard                                                           *
- *     Full Featured                                                      *
- *     Low Cost                                                           *
- *   -Supported Development Boards                                        *
- *     Nios II Development Board, Stratix II Edition                      *
- *     Nios Development Board, Stratix Professional Edition               *
- *     Nios Development Board, Stratix Edition                            *
- *     Nios Development Board, Cyclone Edition                            *
- *   -System Library Settings                                             *
- *     RTOS Type - MicroC/OS-II                                           *
- *     Periodic System Timer                                              *
- *   -Know Issues                                                         *
- *     If this design is run on the ISS, terminal output will take several*
- *     minutes per iteration.                                             *
- **************************************************************************/
-
 #include "includes.h"
 #include "sys/alt_timestamp.h" //for time measurement
 
@@ -93,12 +64,16 @@ void MainTask(void* pdata) {
 	int16_t avgSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
 	uint32_t averagedDataDeltaT = 0;
 	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
+
+	int16_t rcValues[8];
+
 	INT8U os_err = OS_ERR_NONE;
 	uint8_t data_err = NO_ERR;
 
 	struct logData* loggData = malloc(sizeof(struct logData));
 
 	while (1) {
+		//Semaphore for periodic task
 		OSSemPend(mainTaskSem, 0, &os_err);
 
 
@@ -106,35 +81,26 @@ void MainTask(void* pdata) {
 		if (SDM_NEW_DATA_AVAILABLE == 1) {
 			os_err = getSensorData(avgSensorData, &averagedDataDeltaT);
 			data_err = filterSensorData(avgSensorData, filteredSensorData, averagedDataDeltaT); //only filter new data
-
-/*			RC DATA OUTPUT TESTING
- *			RC_SCALE_TO_PWM = rcValue to PWM output interval [0;210]
- *			 max RCvalue [6400] * RC_SCALE_TO_PWM = PWM value
- */
-//			int count = 0;
-//			count++;
-//			if (RC_RECEIVER_NEW_DATA_AVAILABLE == 1 && count == 10) // RC required
-//			{
-//				count = 0;
-//				printf("THROTTLE: %d\tROLL: %d\tYAW: %d\tPITCH: %d\n", rcValue[RC_THROTTLE_INDEX], rcValue[RC_ROLL_INDEX], rcValue[RC_YAW_INDEX], rcValue[RC_PITCH_INDEX]);
-//			}
-
-
-			float rcValueScale = 0.05625; //360/6400 - 180;
-
-			//assuming X axis from Filter is PITCH
-			float pidPITCHMidVal = PIDPitchCalculation(rcValue[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
-
-			//assuming X axis from Filter is ROLL
-			float pidROLLMidVal = PIDRollCalculation(rcValue[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
-
-			//assuming X axis from Filter is YAW
-			float pidYAWMidVal = PIDYawCalculation(rcValue[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]); //PID value at medium rcInput = [472; 473] // Pitch Axis angle, mid RCvalue is 3200 * RC_SCALE_TO_PWM
-
-//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal);
-
-			mapToMotors(rcValue[RC_THROTTLE_INDEX], pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
 		}
+
+		if (RC_RECEIVER_NEW_DATA_AVAILABLE == 1 ){
+			getRCvalues(rcValues); //new rc commands will be copied in local array
+			printf("THROTTLE: %d\tROLL: %d\tYAW: %d\tPITCH: %d\n", rcValues[RC_THROTTLE_INDEX], rcValues[RC_ROLL_INDEX], rcValues[RC_YAW_INDEX], rcValues[RC_PITCH_INDEX]);
+		}
+
+		//assuming X axis from Filter is PITCH
+		float pidPITCHMidVal = PIDPitchCalculation(rcValues[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]);
+
+		//assuming X axis from Filter is ROLL
+		float pidROLLMidVal = PIDRollCalculation(rcValues[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]);
+
+		//assuming X axis from Filter is YAW
+		float pidYAWMidVal = PIDYawCalculation(rcValues[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]);
+
+//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal); //debug print
+
+		mapToMotors(rcValues[RC_THROTTLE_INDEX], pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
+
 
 
 		//TODO Copy new Data to Struct for logging
@@ -150,7 +116,7 @@ void MainTask(void* pdata) {
 //
 //		int j;
 //		for (j = 0; j < 8; ++j) {
-//			loggData->rawRadio[i] = rcValue[i];
+//			loggData->rawRadio[i] = rcValues[i];
 //		}
 //		OSQPost(loggerQsem, (void*) loggData);
 	}
@@ -216,19 +182,19 @@ int main(void) {
 	/*
 	 * init state -> wait 2 seconds (alt_ticks_per_second() * 2) until every task starts
 	 */
-	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second() * 2,
+	alt_alarm_start(&periodicMainTaskAlarm, alt_ticks_per_second() * MAIN_TASK_DELAY,
 			mainTasktimerCallback, NULL); // periodic timer for MainTask
 
-	alt_alarm_start(&periodicRCReceiverTaskAlarm, alt_ticks_per_second() * 2,
-			RCReceiverTaskTasktimerCallback, NULL); // periodic timer for MainTask
+	alt_alarm_start(&periodicRCReceiverTaskAlarm, alt_ticks_per_second() * RC_TASK_DELAY,
+			RCReceiverTaskTasktimerCallback, NULL); // periodic timer for RCTask
 
 	alt_alarm_start(&periodicSensorDataManagerTasktimerAlarm,
-			alt_ticks_per_second() * 2, SensorDataManagerTasktimerCallback,
-			NULL); // periodic timer for MainTask
+			alt_ticks_per_second() * SENSORDATA_TASK_DELAY, SensorDataManagerTasktimerCallback,
+			NULL); // periodic timer for SensorDataManagerTask
 
 	printf("Init done\n");
 
-	/**
+	/*
 	 * create RCReceiver Task
 	 */
 	OSTaskCreateExt(RCReceiverTask,
@@ -240,6 +206,7 @@ int main(void) {
 
 	/*
 	 * create SensorDataManagerTask
+	 * Task is in an external Task
 	 * declared in SensorDataManager.h
 	 */
 	err = OSTaskCreateExt(SensorDataManagerTask,

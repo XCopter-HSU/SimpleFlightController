@@ -95,8 +95,8 @@ INT8U getSensorData(int16_t* avgSensorData, uint32_t* deltaTime){
 	OSMutexPend(sensorDataMutex, 0, &err);//Acquire Mutex for the avg Data
 	for(i = 0;i <9 ;i++){
 		avgSensorData[i] = avgData[i];
-
 	}
+
 	*deltaTime = averagedDataDeltaT;
 	SDM_NEW_DATA_AVAILABLE = 0;
 	err = OSMutexPost(sensorDataMutex);//release Semaphore for the avg Data
@@ -184,7 +184,10 @@ int8_t initSensors(){
 	return NO_ERR; //dont know how to return multiple errors
 }
 
-
+/**
+* Calculates the calibration offest for the gyroscope.
+* This mehtod is blocking until the Gryro is warmed up
+*/
 int8_t getGyroCalibrationOffset() {
 
 	int8_t numberOfSamples = 100;

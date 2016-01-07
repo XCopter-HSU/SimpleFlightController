@@ -1,13 +1,3 @@
-/*
- * SensorDataManager.c
- *
- *  Created on: 28.10.2015
- *      Author: aott
- *
- *
- *
- */
-
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -18,6 +8,27 @@
 
 #define true 1
 #define false 0
+
+
+ /*
+ * accelerometer calibration constants (measured by hand)
+ */
+const float ax_offset = 13;      // calibration of accelerometer values:
+const float ay_offset = -2; 		// (accelX*accelX) + (accelY*accelY) * (accelZ*accelZ) should be independant of the orientation of the accelerometer
+const float az_offset = 28;
+
+//accl range [-maxAbsScaleDelta, maxAbsScaleDelta]
+#define maxAbsScaleDelta 300.0f
+float ax_scale = maxAbsScaleDelta / 262.0f; //1.145038
+float ay_scale = maxAbsScaleDelta / 267.0f;
+float az_scale = maxAbsScaleDelta / 250.0f;
+
+/*
+ * unit conversion constants
+ */
+const float gyroSens = 14.375;           // convert lsb to rad/sec (gyro output)
+const float dtor = M_PI / 180.0F;          // convert degree to rad
+const float rtod = 180.0F / M_PI;          // convert rad to degree
 
 /*
  * raw sensor data array
@@ -106,7 +117,7 @@ float omega_p[3] = { 0.0, 0.0, 0.0 };
  *	- raw_values
  *		pointer on the raw sensor values array
  */
-void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
+void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values, float deltaT) {
 
 	// norm accelerometer
 	float accelX = ((float) (raw_values[ACC_Y_IDX] - ay_offset)) * ay_scale; // calibration of x-accelerometer
@@ -169,7 +180,7 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
  *		the time delta between each iteration ?
  *		time delta for integration
  */
-void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omega_m) {
+void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omega_m, float deltaT) {
 
 	//init
 	if (first) {
@@ -289,13 +300,13 @@ void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omeg
 
 int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData, uint32_t averagedDataDelatT){
 
-	deltaT = averagedDataDelatT / 1000.0; //update deltaT for all functions and calculate from millisecond to second
+	float deltaT = averagedDataDelatT / 1000.0; //update deltaT for all functions and calculate from millisecond to second
 
 	//convert raw data into angles etc
-	getRawData(angle, omega, mag, avgSensorData);
+	getRawData(angle, omega, mag, avgSensorData, deltaT);
 
 	//filter and merge sensor data
-	getFilteredData(angle_p, omega_p, angle, omega);
+	getFilteredData(angle_p, omega_p, angle, omega, deltaT);
 
 
 	//accl_x predicted

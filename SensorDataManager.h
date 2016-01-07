@@ -19,6 +19,7 @@
 
 #ifndef SENSORDATAMANAGER_H_
 #define SENSORDATAMANAGER_H_
+
 #include <stdint.h> // Include stdint.h for the use of Integers with a defined size
 #include "includes.h"
 
