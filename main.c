@@ -89,17 +89,17 @@ void MainTask(void* pdata) {
 		}
 
 		//assuming X axis from Filter is PITCH
-		float pidPITCHMidVal = PIDPitchCalculation(rcValues[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]);
+		float pitchPIDErrorValue = PIDPitchCalculation(rcValues[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]);
 
 		//assuming X axis from Filter is ROLL
-		float pidROLLMidVal = PIDRollCalculation(rcValues[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]);
+		float rollPIDErrorValue = PIDRollCalculation(rcValues[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]);
 
 		//assuming X axis from Filter is YAW
-		float pidYAWMidVal = PIDYawCalculation(rcValues[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]);
+		float yawPIDErrorValue = PIDYawCalculation(rcValues[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]);
 
-//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal); //debug print
+//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pitchPIDErrorValue, rollPIDErrorValue, yawPIDErrorValue); //debug print
 
-		mapToMotors(rcValues[RC_THROTTLE_INDEX], pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
+		mapToMotors(rcValues[RC_THROTTLE_INDEX], rollPIDErrorValue, pitchPIDErrorValue, yawPIDErrorValue);
 
 
 
@@ -110,9 +110,9 @@ void MainTask(void* pdata) {
 //			loggData->filter[i] = filteredSensorData[i];
 //		}
 //
-//		loggData->pid[0] = pidPITCHMidVal;
-//		loggData->pid[1] = pidROLLMidVal;
-//		loggData->pid[2] = pidYAWMidVal;
+//		loggData->pid[0] = pitchPIDErrorValue;
+//		loggData->pid[1] = rollPIDErrorValue;
+//		loggData->pid[2] = yawPIDErrorValue;
 //
 //		int j;
 //		for (j = 0; j < 8; ++j) {
