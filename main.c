@@ -58,12 +58,11 @@ void LoggerTask(void* pdata) {
  * Main Task
  */
 void MainTask(void* pdata) {
-//	int frameDone = 0; // RC required
 	printf("Starting Main task...\n");
 
 	int16_t avgSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
-	uint32_t averagedDataDeltaT = 0;
 	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
+	uint32_t averagedDataDeltaT = 0;
 
 	int16_t rcValues[8];
 
