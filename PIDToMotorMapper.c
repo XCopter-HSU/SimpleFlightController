@@ -8,7 +8,7 @@
 float computeCThrottle(float limitedThrottle, float CMix, float pidMix){
 	//Compute the CThrottle value subject to CMix
 
-	float CThrottle = (float) (50.0 / (limitedThrottle + CMix * pidMix));
+	float CThrottle = (float) (100.0 / (limitedThrottle + CMix * pidMix));
 	return CThrottle;
 }
 
@@ -29,24 +29,17 @@ float PIDMIX(int8_t X, int8_t Y, int8_t Z, float throttle, float roll, float pit
 	while(CMixIsCorrect == 0) {
 		//Compute the values using the mapping table
 		pidMix = CMix * ((roll * X) + (pitch * Y) + (yaw * Z));
-		throttleMix = limitedThrottle * computeCThrottle(limitedThrottle, CMix, pidMix);
-	
+		throttleMix = limitedThrottle * computeCThrottle(limitedThrottle, CMix, pidMix);	
 	
 		if(pidMix > limitedThrottle) {
 			CMix -= CMix > 0.1 ? 0.1 : 0;
 		} else {
 			CMixIsCorrect = 1;
-		}
-	
-	}
-	
+		}	
+	}	
 	return  throttleMix + pidMix; 
 } 
-
-int max(int val1, int val2 ){
-	return val1 < val2 ? val2:val1;
-}
- 										
+								
 
 
 //Maps all four values to each motor and computes the the PWM- signal for the motors.
