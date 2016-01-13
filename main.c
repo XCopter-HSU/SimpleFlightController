@@ -58,11 +58,12 @@ void LoggerTask(void* pdata) {
  * Main Task
  */
 void MainTask(void* pdata) {
+//	int frameDone = 0; // RC required
 	printf("Starting Main task...\n");
 
 	int16_t avgSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
-	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
 	uint32_t averagedDataDeltaT = 0;
+	float filteredSensorData[9] = { 0 }; //Order: ACC- GYR - COMP
 
 	int16_t rcValues[8];
 
@@ -88,17 +89,17 @@ void MainTask(void* pdata) {
 		}
 
 		//assuming X axis from Filter is PITCH
-		float pitchPIDErrorValue = PIDPitchCalculation(rcValues[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]);
+		float pidPITCHMidVal = PIDPitchCalculation(rcValues[RC_PITCH_INDEX], (float) filteredSensorData[EULER_PITCH_INDEX]);
 
 		//assuming X axis from Filter is ROLL
-		float rollPIDErrorValue = PIDRollCalculation(rcValues[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]);
+		float pidROLLMidVal = PIDRollCalculation(rcValues[RC_ROLL_INDEX], (float) filteredSensorData[EULER_ROLL_INDEX]);
 
 		//assuming X axis from Filter is YAW
-		float yawPIDErrorValue = PIDYawCalculation(rcValues[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]);
+		float pidYAWMidVal = PIDYawCalculation(rcValues[RC_YAW_INDEX], (float) filteredSensorData[EULER_YAW_INDEX]);
 
-//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pitchPIDErrorValue, rollPIDErrorValue, yawPIDErrorValue); //debug print
+//			printf("PITCH: %f\tROLL: %f\tYAW: %f\n", pidPITCHMidVal, pidROLLMidVal, pidYAWMidVal); //debug print
 
-		mapToMotors(rcValues[RC_THROTTLE_INDEX], rollPIDErrorValue, pitchPIDErrorValue, yawPIDErrorValue);
+		mapToMotors(rcValues[RC_THROTTLE_INDEX], pidROLLMidVal, pidPITCHMidVal, pidYAWMidVal);
 
 
 
@@ -109,9 +110,9 @@ void MainTask(void* pdata) {
 //			loggData->filter[i] = filteredSensorData[i];
 //		}
 //
-//		loggData->pid[0] = pitchPIDErrorValue;
-//		loggData->pid[1] = rollPIDErrorValue;
-//		loggData->pid[2] = yawPIDErrorValue;
+//		loggData->pid[0] = pidPITCHMidVal;
+//		loggData->pid[1] = pidROLLMidVal;
+//		loggData->pid[2] = pidYAWMidVal;
 //
 //		int j;
 //		for (j = 0; j < 8; ++j) {
@@ -141,7 +142,7 @@ alt_u32 RCReceiverTaskTasktimerCallback(void* context) {
  * mainTask periodic timer Callback
  */
 alt_u32 SensorDataManagerTasktimerCallback(void* context) {
-	OSSemPost(sensorDataManageTaskrSem);
+	OSSemPost(sensorDataManageTaskSem);
 	return alt_ticks_per_second() * SENSORDATAMANAGER_TASK_PERIOD / 1000; //must return the periode ticks
 }
 
@@ -171,12 +172,12 @@ int main(void) {
 	 */
 	loggerQsem = OSQCreate((void*) &loggerQmessageTable, LOGGER_Q_SIZE); //create Message Queue for LOGGER
 
-	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
-	rcReceiverMutex = OSMutexCreate(RC_RECEIVER_MUTEX_PRIORITY, &err);
+	sensorDataMutex = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err); // Used to synchronize Main task and SensorDataManager
+	rcReceiverMutex = OSMutexCreate(RC_RECEIVER_MUTEX_PRIORITY, &err); // Used to synchronize Main task and RCTask
 
-	mainTaskSem = OSSemCreate(0);
-	sensorDataManageTaskrSem = OSSemCreate(0);
-	rcTaskSem = OSMutexCreate(SENSOR_DATA_MUTEX_PRIORITY, &err);
+	mainTaskSem = OSSemCreate(0);		//used to make the MainTask periodic
+	sensorDataManageTaskSem = OSSemCreate(0); //used to make the SensorDataMgr periodic
+	rcTaskSem = OSSemCreate(0); 		//used to make the RcReciever periodic
 
 	/*
 	 * init state -> wait 2 seconds (alt_ticks_per_second() * 2) until every task starts

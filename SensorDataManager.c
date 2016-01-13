@@ -38,7 +38,7 @@ int16_t* arrs[9] = {acclX, acclY, acclZ, gyroX, gyroY, gyroZ, compX, compY, comp
 //init all elements to 0
 int16_t avgData[9] = {0};
 
-int8_t SDM_NEW_DATA_AVAILABLE = 0;
+//int8_t SDM_NEW_DATA_AVAILABLE = 0;
 
 int16_t gyroOffsets[3];
 
@@ -113,6 +113,8 @@ void SensorDataManagerTask(void* pdata){
 
 	int8_t err = NO_ERR;
 
+	INT8U os_err = OS_ERR_NONE;
+
 	//start
 	uint32_t start = alt_timestamp();
 	uint32_t stop = 0;
@@ -124,6 +126,10 @@ void SensorDataManagerTask(void* pdata){
 	}
 
 	while(1){
+
+		//Semaphore for periodic task
+		OSSemPend(sensorDataManageTaskSem, 0, &os_err);
+
 		start = alt_timestamp();
 		err = readSensorData(rawData); //get newRawData
 

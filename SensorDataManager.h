@@ -27,13 +27,14 @@
 #include "Errorcodes.h"
 
 extern OS_EVENT* sensorDataMutex;
+extern OS_EVENT* sensorDataManageTaskSem;
 
 /**
  * 1 if new Sensordata is available
  * 0 if no new sensordata is available
  */
 
-extern int8_t SDM_NEW_DATA_AVAILABLE;
+int8_t SDM_NEW_DATA_AVAILABLE;
 
 /**
  * read the Raw Sensorvalues directly from the sensors vial i2c

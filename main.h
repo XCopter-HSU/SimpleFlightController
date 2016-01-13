@@ -43,7 +43,7 @@ void* loggerQmessageTable[LOGGER_Q_SIZE]; //uart queue table // RC required
 /* Definition of Semaphores*/
 OS_EVENT* mainTaskSem;
 OS_EVENT* rcTaskSem;
-OS_EVENT* sensorDataManageTaskrSem;
+OS_EVENT* sensorDataManageTaskSem;
 
 OS_EVENT* sensorDataMutex; //global mutex for SensorDataManager
 OS_EVENT* rcReceiverMutex; //global mutex to secure the rcValue Array

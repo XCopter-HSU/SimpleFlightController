@@ -117,7 +117,7 @@ float omega_p[3] = { 0.0, 0.0, 0.0 };
  *	- raw_values
  *		pointer on the raw sensor values array
  */
-void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
+void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values, float deltaT) {
 
 	// norm accelerometer
 	float accelX = ((float) (raw_values[ACC_Y_IDX] - ay_offset)) * ay_scale; // calibration of x-accelerometer
@@ -145,7 +145,7 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
 	angle[1] = atan2(-accelX,
 			((accelY * sin(angle[0])) + (accelZ * cos(angle[0]))));	// Pitch angle around y axis, restricted to [-90, 90] deg
 
-	//magnetometer zur ausgleichung da xcopter nicht tangential zur erde steht
+	//magnetometer zur ausgleichung weil xcopter nicht tangential zur erde steht
 	angle[2] = atan2((magnetZ * sin(angle[0]) - magnetY * cos(angle[0])),
 			(magnetX * cos(angle[1]) + (magnetY * sin(angle[1]) * sin(angle[0]))
 					+ (magnetZ * sin(angle[1]) * cos(angle[0])))); // Yaw angle around z axis. [-180, 180] deg
@@ -176,8 +176,9 @@ void getRawData(float* angle, float* omega, float* mag, int16_t* raw_values) {
  *	- omega_m
  *		pointer on measured gyroscope angular velocity array
  *
- *	- deltaT
- *		the time delta between each data set 
+ *	- step
+ *		the time delta between each iteration ?
+ *		time delta for integration
  */
 void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omega_m, float deltaT) {
 
@@ -186,7 +187,7 @@ void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omeg
 		int i;
 
 		for (i = 0; i < 3; i++) {
-			x_m[i] = angle_m[i];
+			x_m[i] = angle_m[i]; 		//warum x_m = x_p
 			x_p[i] = angle_m[i];
 
 			v_p[i] = omega_m[i];
@@ -296,20 +297,7 @@ void getFilteredData(float* angle_p, float* omega_p, float* angle_m, float* omeg
 	}
 }
 
-/*
- * interface method to filter the data and compute the euler angles.
- *
- * output parameter
- *	- filteredSensorData
- *		pointer on the array where the filtered data is saved to
- *
- * input parameter
- *	- avgSensorData
- *		pointer on the array of averaged sensor data (from the sensor data manager)
- *	- averagedDataDelatT
- *		the time delta between one averaged data set and the next averaged data set
- *		-> data sampling time delta
- */
+
 int8_t filterSensorData(int16_t* avgSensorData, float* filteredSensorData, uint32_t averagedDataDelatT){
 
 	float deltaT = averagedDataDelatT / 1000.0; //update deltaT for all functions and calculate from millisecond to second
